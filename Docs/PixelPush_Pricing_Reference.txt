@@ -1,0 +1,651 @@
+PixelPush
+Complete Pricing Reference
+Every cost you pay. Every dollar users pay you.
+Pricing & Revenue Document
+Version 1.0 · 2025
+Developed by
+Aepostrophee
+Confidential · Internal Use Only
+
+-- 1 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Table of Contents
+Table of Contents....................................................................................................................... 2
+1. Overview ................................................................................................................................ 3
+2. Infrastructure Costs ................................................................................................................ 4
+2.1 Vercel — Hosting & Serverless Functions ........................................................................ 4
+2.2 Neon — PostgreSQL Database ........................................................................................ 4
+2.3 Resend — Transactional Email ........................................................................................ 5
+2.4 Anthropic Claude API — AI Project Suggestions .............................................................. 5
+2.5 GitHub API ....................................................................................................................... 6
+2.6 Web Push Notifications (VAPID) ....................................................................................... 6
+2.7 Stripe — Payment Processing .......................................................................................... 6
+2.8 Domain & Subdomain ....................................................................................................... 7
+3. Total Infrastructure Cost by Growth Stage ............................................................................. 8
+4. User-Facing Plans.................................................................................................................. 9
+4.1 Free Tier — $0 Forever .................................................................................................... 9
+4.2 PixelPush Pro — $7 / month ............................................................................................. 9
+4.3 Lifetime Deal — $35 one-time .........................................................................................10
+5. Pricing Page Recommendation .............................................................................................12
+6. Revenue Projections .............................................................................................................13
+6.1 Monthly Recurring Revenue (Subscriptions Only) ............................................................13
+6.2 Lifetime Deal Revenue (One-Time) .................................................................................13
+6.3 Combined Revenue — Realistic Launch Scenario...........................................................14
+7. Break-Even Analysis .............................................................................................................15
+8. Complete Cost vs. Revenue Summary..................................................................................16
+8.1 Margin at Scale................................................................................................................17
+9. Pricing Decision Guide ..........................................................................................................18
+10. Glossary..............................................................................................................................19
+
+-- 2 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+1. Overview
+This document is the single source of truth for all pricing at PixelPush. It is split into two parts:
+what Aepostrophee pays to run the product (outgoing costs), and what users pay to use the
+product (incoming revenue). Both sides are broken down across all growth stages — from pre-
+launch to scale — so financial expectations are clear at every milestone.
+How to Read This Document
+Part A covers your costs — infrastructure, APIs, and transaction fees. Part B covers user-facing
+pricing — the free tier, Pro subscription, Lifetime Deal, and all revenue scenarios. Part C brings both
+sides together into a net profit view.
+
+-- 3 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+PART A — YOUR COSTS
+Everything Aepostrophee pays to build and operate PixelPush.
+2. Infrastructure Costs
+2.1 Vercel — Hosting & Serverless Functions
+Vercel hosts the Next.js frontend and runs all server-side API routes as serverless functions.
+PixelPush uses Vercel for page rendering, API routes, cron jobs, and Blob Storage for
+generated share card images.
+Plan Cost What It Covers When to
+Upgrade
+Hobby (Free) $0 / month MVP & pre-launch. Personal
+projects only. No SLA.
+0 – 500 users
+Pro $20 / month Production. Includes $20 usage
+credits. Required for cron jobs,
+team access, and commercial use.
+500 – 50,000
+users
+Usage overages $0.18 / GB bandwidth;
+$0.60 / million function
+invocations
+Charged above the included credits
+on Pro plan.
+At scale
+Cron Jobs Require Pro
+PixelPush's daily progress sync — which checks all active users' GitHub graphs — runs as a Vercel
+Cron Job. Cron jobs are not available on the free Hobby plan. You must upgrade to Pro before
+activating this feature.
+2.2 Neon — PostgreSQL Database
+Neon provides serverless PostgreSQL. It stores all user accounts, designs, schedule entries,
+and Stripe billing fields. Neon scales to zero when idle, keeping costs low in early stages.
+Plan Cost Included Resources When to
+Upgrade
+Free $0 / month 0.5 GB storage · 100 compute-hour/month · 1
+project · Scale to zero
+0 – 500 users
+Launch $19 / month 10 GB storage · 300 compute-hours/month ·
+Unlimited projects · No scale-to-zero
+500 – 5,000
+users
+
+-- 4 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Scale $69 / month 50 GB storage · 750 compute-hours/month ·
+Autoscaling enabled
+5,000 –
+50,000 users
+2.3 Resend — Transactional Email
+Resend sends daily schedule reminders, missed-day alerts, milestone emails, and payment
+failure notifications to users. Email is the fallback channel for users who decline push
+notifications.
+Plan Cost Included When
+Free $0 / month 3,000 emails/month · 1 domain · Basic
+analytics
+0 – 500
+users
+Pro $20 / month 50,000 emails/month · 10 domains · Full
+analytics + webhooks
+500 – 5,000
+users
+Scale $90 / month 100,000 emails/month · Unlimited domains
+· Dedicated IPs available
+5,000 –
+20,000
+users
+Overage $1.00 / 1,000 emails
+above plan limit
+Billed automatically at end of month Any plan
+2.4 Anthropic Claude API — AI Project Suggestions
+The Claude API powers PixelPush Pro's AI Project Suggestion feature. When a Pro user
+activates a design, PixelPush sends the user's detected tech stack, theme, and schedule
+duration to Claude and receives 3 to 5 personalized project ideas in return. This is the only API
+in the stack that charges per use rather than per month.
+Model Pricing Notes Recommendation
+Claude Haiku 4.5 $0.25 / million input tokens ·
+$1.25 / million output tokens
+Fast, cheapest.
+Recommended for
+PixelPush Pro
+suggestions.
+Primary choice
+Claude Sonnet 4.6 $3.00 / million input tokens ·
+$15.00 / million output tokens
+More nuanced
+output. Use if
+suggestion quality
+needs
+improvement.
+Premium option
+Cost Per API Call
+
+-- 5 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Each suggestion call sends approximately 600 input tokens (user repo context + prompt) and
+receives approximately 500 output tokens (3-5 project suggestions). At Haiku pricing this is $0.0008
+per call. At Sonnet pricing this is $0.009 per call. Even at 1,000 Pro users each activating 2 designs
+per month, Haiku costs under $2/month total.
+Usage Scenario Estimated Monthly AI Cost
+50 Pro users · 1 design each/month ~$0.04 (Haiku) / ~$0.45 (Sonnet)
+200 Pro users · 2 designs each/month ~$0.32 (Haiku) / ~$3.60 (Sonnet)
+500 Pro users · 2 designs each/month ~$0.80 (Haiku) / ~$9.00 (Sonnet)
+1,000 Pro users · 2 designs each/month ~$1.60 (Haiku) / ~$18.00 (Sonnet)
+2.5 GitHub API
+PixelPush uses GitHub's GraphQL API v4 to read users' contribution graphs and public
+repository data. This API is free for all authenticated users with a rate limit of 5,000 points per
+hour — far beyond anything PixelPush will consume.
+Plan Cost Notes Applies
+All usage $0 Free for all authenticated requests Always
+2.6 Web Push Notifications (VAPID)
+Browser push notifications are sent using the open Web Push standard with VAPID keys. There
+is no third-party service involved and no cost at any scale.
+Plan Cost Notes Applies
+All usage $0 Free browser standard. No third-party service
+required.
+Always
+2.7 Stripe — Payment Processing
+Stripe has no monthly subscription fee. You only pay Stripe when a user pays you. All fees are
+deducted automatically from each transaction before the remainder is deposited into your bank
+account.
+Fee Type Amount Notes
+
+-- 6 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Standard card (Visa, Mastercard,
+Amex)
+2.9% + $0.30 per
+successful transaction
+Applied to every payment
+International card surcharge +1.5% on top of standard
+rate
+When card is issued outside
+your country
+Currency conversion +1.0% additional When currency conversion is
+required
+Failed payment retry $0 No charge for failed attempts
+Refund processing Original fee not returned to
+you
+Stripe keeps the processing
+fee on refunds
+Dispute / chargeback $15 flat fee per dispute Reversed if you win the
+dispute
+Stripe Radar (fraud detection) $0 Free and enabled by default
+Customer Portal $0 Free hosted billing
+management UI
+Net Amount Per Transaction
+On a $7.00 monthly charge: Stripe takes $0.50 (2.9% + $0.30), you receive $6.50. On a $35.00
+lifetime charge: Stripe takes $1.32 (2.9% + $0.30), you receive $33.68. These fees are already
+accounted for in the revenue projections in Part B.
+2.8 Domain & Subdomain
+PixelPush is deployed at pixelpush.aepostrophee.com — a subdomain of Aepostrophee's
+existing domain. No additional domain purchase is required. DNS configuration is a free
+CNAME record added to your existing registrar.
+Item Cost Notes
+pixelpush.aepostrophee.com
+subdomain
+$0 Subdomain of existing aepostrophee.com
+domain
+SSL certificate $0 Auto-provisioned and renewed by Vercel at
+no charge
+DNS hosting $0 Included with existing domain registrar
+
+-- 7 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+3. Total Infrastructure Cost by Growth Stage
+The table below shows the combined monthly cost of all services at each stage of PixelPush's
+growth. AI costs are shown as a range using Haiku (low) and Sonnet (high) pricing.
+Stage Users Vercel Neon Resend Claude
+API
+GitHub /
+Push /
+Domain
+Total /
+Month
+Stage 1 — Pre-
+Launch / MVP
+0 – 500 $0 $0 $0 $0 – $0.04 $0 $0 –
+$0.04
+Stage 2 — Early
+Growth
+500 –
+5,000
+$20 $19 $20 $0.04 –
+$0.45
+$0 $59 –
+$59.50
+Stage 3 — Growth 5,000 –
+20,000
+$20 –
+$60
+$69 $20 –
+$90
+$0.80 – $9 $0 $110 –
+$219
+Stage 4 — Scale 20,000 –
+50,000
+$60 –
+$120
+$69 $90 $1.60 –
+$18
+$0 $221 –
+$298
+Key Takeaway — Costs
+PixelPush costs $0 per month to run until you have over 500 users. Even at 5,000 users, monthly
+infrastructure is under $60. At 50,000 users, costs are under $300/month. This is an exceptionally
+lean cost structure for a SaaS product.
+
+-- 8 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+PART B — USER PRICING & YOUR REVENUE
+What users pay for PixelPush, and what you receive after Stripe fees.
+4. User-Facing Plans
+4.1 Free Tier — $0 Forever
+The free tier is permanent — not a trial. It provides genuine value and is the primary acquisition
+channel. Every user starts here. The free tier is designed to be useful enough to keep users
+engaged, but limited enough that power users feel the pull toward Pro.
+Feature Free Tier
+Price $0 — free forever
+Image suggestions per theme 5 per theme selection
+Active designs at once 1 design maximum
+Themes available 3 — Pets, Scenery, Abstract
+Schedule recalculation 1 recalculation per active design
+AI Project Suggestions Not included
+Portfolio Fit Score Not included
+Custom image upload Not included
+Org / team graphs Not included
+Social sharing Enabled — share cards include PixelPush watermark
+Timelapse GIF export Not included
+Push / email notifications Included
+Public profile page Included — pixelpush.aepostrophee.com/u/username
+Support Community documentation only
+4.2 PixelPush Pro — $7 / month
+Pro is billed monthly and can be cancelled at any time. Access continues until the end of the
+paid billing period after cancellation. Pro is the primary recurring revenue model for PixelPush.
+Feature PixelPush Pro — $7/month
+
+-- 9 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Price $7.00 per month · billed monthly · cancel anytime
+Stripe fee deducted $0.50 (2.9% + $0.30)
+Net revenue to you $6.50 per subscriber per month
+Image suggestions per theme 8 per theme selection (vs 5 on free)
+Active designs at once 3 simultaneous designs
+Themes available All current and future themes + early access
+Schedule recalculation Unlimited — full recovery from missed days at any
+time
+AI Project Suggestions 3 to 5 personalized project ideas per design, matched
+to user tech stack
+Portfolio Fit Score Interview and portfolio value rating on every
+suggestion
+Custom image upload Upload any source image for pixel art conversion
+Org / team graphs Contribution art for GitHub organization profiles
+Social sharing Watermark-free share cards
+Timelapse GIF export Included — auto-generated animated completion GIF
+Push / email notifications Included
+Public profile page Included — with Pro badge displayed
+Support Priority support with guaranteed response time
+4.3 Lifetime Deal — $35 one-time
+The Lifetime Deal gives permanent Pro access for a single upfront payment. It is a launch-
+phase offer intended to generate upfront revenue, build an early advocate community, and
+create urgency. It will be capped and eventually retired once PixelPush reaches steady-state
+monthly subscriber growth.
+Detail Lifetime Deal — $35
+Price $35.00 one-time · no renewal · Pro access permanent
+Stripe fee deducted $1.32 (2.9% + $0.30)
+Net revenue to you $33.68 per sale
+Features included All PixelPush Pro features permanently
+Availability Capped at 200 to 500 redemptions — first-come, first-
+served
+
+-- 10 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Renewal required None — Pro access never expires
+Future plan upgrades Lifetime members receive all new Pro features at no
+additional charge
+Recommended positioning Less than 5 months of Pro — buy once, use forever
+Cap the Lifetime Deal
+Without a cap, Lifetime Deals can cannibalize monthly subscription revenue long-term. Set a hard
+limit of 200 to 500 redemptions and display a live counter on the pricing page to create urgency.
+Close the offer once the cap is reached.
+
+-- 11 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+5. Pricing Page Recommendation
+The public-facing pricing page at pixelpush.aepostrophee.com/pricing should present three
+columns clearly. Below is the recommended copy and structure.
+Free
+$0 / month
+Forever
+Pro
+$7 / month
+Cancel anytime
+Lifetime
+$35 one-time
+Limited spots
+5 image suggestions 8 image suggestions 8 image suggestions
+1 active design 3 active designs 3 active designs
+3 themes All themes + early access All themes + early access
+1 recalculation Unlimited recalculations Unlimited recalculations
+— AI project suggestions AI project suggestions
+— Portfolio fit scores Portfolio fit scores
+— Custom image upload Custom image upload
+— Org graphs Org graphs
+Watermarked shares Clean share cards + GIF Clean share cards + GIF
+Community support Priority support Priority support
+
+-- 12 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+6. Revenue Projections
+6.1 Monthly Recurring Revenue (Subscriptions Only)
+These projections assume the listed conversion rate of free users to paid Pro subscribers. Net
+MRR is after Stripe's transaction fee of $0.50 per $7.00 charge.
+Total Users Conversion
+Rate
+Pro
+Subscribers
+Gross MRR Stripe Fees Net MRR
+500 users 3% 15 $105 gross $7.50 fees $97.50 net MRR
+500 users 5% 25 $175 gross $12.50 fees $162.50 net MRR
+2,000 users 5% 100 $700 gross $50 fees $650 net MRR
+2,000 users 8% 160 $1,120 gross $80 fees $1,040 net MRR
+5,000 users 8% 400 $2,800 gross $200 fees $2,600 net MRR
+5,000 users 10% 500 $3,500 gross $250 fees $3,250 net MRR
+10,000 users 10% 1,000 $7,000 gross $500 fees $6,500 net MRR
+50,000 users 10% 5,000 $35,000
+gross
+$2,500 fees $32,500 net MRR
+6.2 Lifetime Deal Revenue (One-Time)
+The Lifetime Deal generates a single burst of one-time revenue at launch. Net revenue is after
+Stripe's fee of $1.32 per $35.00 charge.
+Lifetime Sales Gross Revenue Stripe Fees Net Revenue
+50 sales $1,750 gross $66 fees $1,684 net
+100 sales $3,500 gross $132 fees $3,368 net
+200 sales $7,000 gross $264 fees $6,736 net
+350 sales $12,250 gross $462 fees $11,788 net
+500 sales $17,500 gross $660 fees $16,840 net
+200 Lifetime Sales + Infrastructure
+200 lifetime sales at launch generates $6,736 net — enough to cover approximately 4 months of
+Stage 2 infrastructure costs ($59/month) while your monthly subscriber base grows. This is the
+recommended launch strategy.
+
+-- 13 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+6.3 Combined Revenue — Realistic Launch Scenario
+The following table models a realistic 12-month trajectory starting from launch, combining
+Lifetime Deal sales in the first month with growing monthly subscriptions.
+Month Stage Active Paying
+Users
+Gross
+Revenue
+Net
+Revenue
+Infrastructure Net
+Profit
+Month
+1
+Launch 200 LTD sales +
+30 Pro subs
+$6,736 +
+$195
+$6,931 $59 $6,872
+Month
+2
+Post-
+launch
+50 Pro
+subscribers
+$325 $325 $59 $266
+Month
+3
+Growth 80 Pro
+subscribers
+$520 $520 $59 $461
+Month
+4
+Growth 120 Pro
+subscribers
+$780 $780 $59 $721
+Month
+6
+Steady
+state
+200 Pro
+subscribers
+$1,300 $1,300 $59 $1,241
+Month
+9
+Scaling 400 Pro
+subscribers
+$2,600 $2,600 $110 $2,490
+Month
+12
+Established 700 Pro
+subscribers
+$4,550 $4,550 $150 $4,400
+
+-- 14 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+7. Break-Even Analysis
+Break-even is the point at which monthly revenue from Pro subscribers covers monthly
+infrastructure costs. Below is the break-even subscriber count at each infrastructure stage.
+Infrastructure Stage Break-Even Point Notes
+Stage 1 — Free tier infra
+($0/month)
+0 Pro subscribers Profitable from first sale
+Stage 2 — $59/month 10 Pro subscribers Achievable within days of a launch
+post
+Stage 3 — $110–219/month 17–34 Pro subscribers Low threshold — reached quickly at
+this stage
+Stage 4 — $221–298/month 34–46 Pro subscribers Still low relative to user base at this
+scale
+Exceptional Unit Economics
+A break-even of 10 subscribers at $59/month infrastructure is extremely lean. Most SaaS products
+require hundreds of paying users before covering costs. PixelPush's serverless stack makes it
+profitable at a tiny user base.
+
+-- 15 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+PART C — NET PROFIT VIEW
+8. Complete Cost vs. Revenue Summary
+The table below presents the full financial picture at each growth stage — every outgoing cost
+against projected net revenue — to show the expected margin at scale.
+Stage Service Monthly
+Cost
+Net MRR
+(example)
+Stripe
+Fees (in
+MRR)
+Net
+Profit
+Stage 1 · 0–500
+users
+Vercel Hobby $0 — — —
+Neon Free $0 — — —
+Resend Free $0 — — —
+Claude API ~$0 — — —
+Total Costs $0/mo $162.50 net
+MRR
+— $162.50+
+Stage 2 · 500–
+5,000 users
+Vercel Pro $20 — — —
+Neon Launch $19 — — —
+Resend Pro $20 — — —
+Claude API
+(Haiku)
+~$0.32 — — —
+Total Costs ~$59/mo $650–$1,040 net
+MRR
+— $591–
+$981+
+Stage 3 · 5,000–
+20,000
+Vercel Pro+ $20–$60 — — —
+Neon Scale $69 — — —
+Resend Scale $20–$90 — — —
+Claude API
+(Haiku)
+~$0.80 — — —
+Total Costs ~$110–
+$220/mo
+$2,600–$3,250
+net MRR
+— $2,380–
+$3,140+
+Stage 4 · 50,000
+users
+Vercel Pro+ $60–$120 — — —
+
+-- 16 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+Neon Scale $69 — — —
+Resend Scale $90 — — —
+Claude API
+(Haiku)
+~$1.60 — — —
+Total Costs ~$221–
+$298/mo
+$32,500 net
+MRR
+— $32,200+
+8.1 Margin at Scale
+PixelPush has extremely high gross margins because the product is software with no physical
+inventory, no customer success team required at early stage, and infrastructure that scales
+sublinearly relative to revenue.
+Scenario Net MRR Monthly
+Costs
+Gross
+Margin
+Notes
+500 users · 25 Pro
+subs
+$163/mo $0/mo 100% First dollars are pure profit
+2,000 users · 160 Pro
+subs
+$1,040/mo $59/mo 94% Exceptional for any SaaS
+product
+10,000 users · 1,000
+subs
+$6,500/mo $150/mo 97% Infrastructure barely
+grows vs revenue
+50,000 users · 5,000
+subs
+$32,500/mo $298/mo 99% Near-perfect margin at
+scale
+
+-- 17 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+9. Pricing Decision Guide
+This section captures key pricing decisions and the reasoning behind each one, for future
+reference when revisiting or adjusting the pricing model.
+Decision Rationale
+Why $7/month for Pro? Positioned below the $10 psychological threshold. Cheap enough
+to be an impulse purchase for a developer, meaningful enough to
+generate real MRR. Comparable to a domain name or one coffee
+per month.
+Why $35 for Lifetime? Exactly 5 months of Pro. Positioned as 'buy once, save forever'
+for early believers. High enough to generate meaningful launch
+revenue, low enough to convert hesitant users.
+Why cap the Lifetime Deal? Unlimited lifetime deals eventually cannibalize subscription
+revenue. A cap of 200–500 creates urgency, limits long-term
+revenue dilution, and keeps the core model subscription-based.
+Why not charge more for Pro? Developer tools in this category (profile tools, productivity apps)
+typically price at $5–10/month. PixelPush is a fun creative tool,
+not a mission-critical utility. Volume at $7 beats lower volume at
+$15.
+Why is AI suggestions a Pro
+feature?
+It has a real per-call cost (Claude API), it delivers career value
+worth paying for, and it is technically differentiated. It is the feature
+most likely to convert free users to Pro.
+Why no annual plan at launch? Annual plans reduce churn but lock in revenue at a discount and
+add billing complexity. Launch with monthly only and introduce an
+annual option (e.g. $60/year = 2 months free) once monthly
+retention data is established.
+
+-- 18 of 19 --
+
+PixelPush | Complete Pricing Reference — Aepostrophee
+Confidential — Aepostrophee 2025 · PixelPush Pricing Reference v1.0
+10. Glossary
+Term Definition
+MRR Monthly Recurring Revenue. Total monthly income from all active Pro
+subscribers.
+Net MRR MRR after Stripe transaction fees are deducted.
+Gross Margin Revenue minus direct costs, expressed as a percentage of revenue. For software,
+this excludes infrastructure and API costs.
+LTD Lifetime Deal. A one-time payment for permanent access to a subscription
+product.
+Conversion Rate The percentage of free users who upgrade to a paid plan.
+Churn The percentage of paid subscribers who cancel in a given month. Low churn is
+critical for healthy MRR growth.
+ARPU Average Revenue Per User. Total MRR divided by total paying users. For
+PixelPush Pro, ARPU is $7 minus Stripe fees = $6.50.
+Break-Even The number of paying subscribers required for monthly revenue to equal monthly
+infrastructure costs.
+CAC Customer Acquisition Cost. What it costs on average to acquire one paying
+customer. For PixelPush, viral sharing is the primary channel so CAC is near
+zero.
+LTV Lifetime Value. The total net revenue expected from a single subscriber over their
+lifetime. At $6.50/month net with average 6-month retention, LTV = ~$39.
+PixelPush — Complete Pricing Reference v1.0
+Aepostrophee · Confidential · Internal Use Only · 2025
+
+-- 19 of 19 --

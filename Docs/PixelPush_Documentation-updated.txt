@@ -1,0 +1,563 @@
+PixelPush
+Turn Your GitHub Graph Into Art
+Product Documentation
+Version 1.0
+Developed by
+Aepostrophee
+Confidential · 2025
+
+-- 1 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+Table of Contents
+Table of Contents....................................................................................................................... 2
+1. Introduction ............................................................................................................................ 4
+2. Product Overview ................................................................................................................... 4
+2.1 Vision ............................................................................................................................... 4
+2.2 Core Value Proposition ..................................................................................................... 4
+2.3 Target Audience ............................................................................................................... 4
+2.4 App Name & Branding ...................................................................................................... 5
+3. Feature Specification ............................................................................................................. 6
+3.1 GitHub OAuth Integration ................................................................................................. 6
+3.2 Contribution Graph Reading ............................................................................................. 6
+3.3 Theme Selection & Pixel Art Generation ........................................................................... 6
+Available Themes (v1.0) ..................................................................................................... 7
+3.4 Commit Schedule Generator ............................................................................................ 7
+3.5 Progress Tracker .............................................................................................................. 7
+3.6 Social Sharing .................................................................................................................. 8
+Sharing Channels ............................................................................................................... 8
+4. Technical Architecture............................................................................................................ 9
+4.1 Technology Stack ............................................................................................................. 9
+4.2 System Architecture Overview .......................................................................................... 9
+Core Data Flow ................................................................................................................... 9
+4.3 GitHub GraphQL API Query ............................................................................................. 9
+4.4 Pixel Art Engine ...............................................................................................................10
+4.5 Share Card Generation....................................................................................................10
+5. User Flows ............................................................................................................................11
+5.1 Onboarding Flow .............................................................................................................11
+5.2 Design Creation Flow ......................................................................................................11
+5.3 Active Schedule Flow ......................................................................................................11
+5.4 Sharing Flow ...................................................................................................................11
+6. Database Schema.................................................................................................................12
+6.1 Users ...............................................................................................................................12
+6.2 Designs ...........................................................................................................................12
+6.3 Schedule Entries .............................................................................................................12
+7. Notifications & Reminders .....................................................................................................14
+
+-- 2 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+7.1 Push Notifications ............................................................................................................14
+7.2 Email Notifications ...........................................................................................................14
+8. Development Roadmap ........................................................................................................15
+Phase 1 — Core MVP ...........................................................................................................15
+Phase 2 — Engagement & Sharing .......................................................................................15
+Phase 3 — Growth Features .................................................................................................15
+Phase 4 — Monetization .......................................................................................................15
+9. Monetization Strategy ...........................................................................................................16
+9.1 Philosophy .......................................................................................................................16
+9.2 Free Tier ..........................................................................................................................16
+9.3 PixelPush Pro — $6-8 / month.........................................................................................16
+9.4 AI Project Suggestion Engine ..........................................................................................17
+How It Works .....................................................................................................................17
+Example Output .................................................................................................................17
+Why This Feature Justifies Pro ..........................................................................................17
+9.5 Early Adopter Lifetime Deal .............................................................................................18
+9.6 Revenue Projections (Conservative)................................................................................18
+9.7 Deployment Cost vs. Revenue Crossover .......................................................................18
+10. Security Considerations ......................................................................................................19
+10.1 OAuth Token Handling ..................................................................................................19
+10.2 Rate Limiting .................................................................................................................19
+10.3 Data Privacy ..................................................................................................................19
+11. Glossary..............................................................................................................................20
+
+-- 3 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+1. Introduction
+PixelPush is a web-based Progressive Web App (PWA) designed for developers who want to
+transform their GitHub contribution graph into pixel art. By connecting their GitHub account,
+users can select a visual theme, generate a pixel art image mapped to the graph's green
+shading system, and receive a precise commit schedule that guides them to recreate that image
+on their live GitHub profile — one contribution at a time.
+This document covers the complete product specification, technical architecture, feature set,
+API integrations, and development roadmap for PixelPush, built and maintained by
+Aepostrophee.
+2. Product Overview
+2.1 Vision
+Every developer has a GitHub contribution graph. Most ignore it. PixelPush turns it into a
+canvas — making the act of writing code a creative, gamified, and socially shareable
+experience.
+2.2 Core Value Proposition
+• Transforms a developer's existing GitHub profile into interactive pixel art
+• Removes the complexity of manually planning contribution patterns
+• Provides a guided, day-by-day commit schedule to complete artwork
+• Creates shareable progress milestones that market the app organically
+2.3 Target Audience
+Segment Description
+Primary Software developers active on GitHub with consistent contribution
+history
+Secondary Open source contributors seeking creative profile differentiation
+Tertiary Developer communities, bootcamp students, and tech content
+creators
+
+-- 4 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+2.4 App Name & Branding
+App Name
+PixelPush
+Tagline
+Turn Your GitHub Graph Into Art
+Developed By
+Aepostrophee
+Platform
+Progressive Web App (PWA) — accessible on desktop and mobile browsers
+
+-- 5 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+3. Feature Specification
+3.1 GitHub OAuth Integration
+Users connect their GitHub account via OAuth 2.0. The app requests the minimum required
+scopes to read contribution data and guide the user through future commits.
+OAuth Scope Purpose
+read:user Access basic profile information (username, avatar)
+repo Required to read contribution data across public and private repos
+user:email For account identification and notification delivery
+3.2 Contribution Graph Reading
+Once authenticated, PixelPush queries GitHub's GraphQL API to retrieve the user's full
+contribution calendar. The API returns contribution data for each day of the past year including:
+• Date of contribution
+• Exact contribution count
+• Hex color code (one of 5 shade levels used by GitHub)
+The five shade levels correspond to:
+Hex Color Shade Level
+#ebedf0 Level 0 — No contributions (empty)
+#9be9a8 Level 1 — Low contributions (light green)
+#40c463 Level 2 — Moderate contributions (mid green)
+#30a14e Level 3 — High contributions (dark green)
+#216e39 Level 4 — Very high contributions (darkest green)
+Important: GitHub's shading thresholds are relative to each user's personal contribution history,
+not fixed numbers. PixelPush calculates a per-user threshold baseline from historical data to
+generate accurate future commit targets.
+3.3 Theme Selection & Pixel Art Generation
+Users select a visual theme for their pixel art. PixelPush's generation engine maps theme
+imagery to the 5 available shade levels of the GitHub graph, producing a viable pixel art design
+within the 52 columns × 7 rows resolution of the contribution grid.
+
+-- 6 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+Available Themes (v1.0)
+• Aviation — aircraft silhouettes, propellers, flight paths
+• Pets — cats, dogs, paw prints, fish bowls
+• Cars — classic vehicles, racing cars, tire tracks
+• Scenery — mountains, trees, cityscapes, sunsets
+• Space — rockets, planets, stars, astronauts
+• Abstract — geometric patterns, waves, symbols
+For each theme, the app generates 3 to 5 pixel art variations. Each is previewed as a grid
+overlay matching the exact dimensions of the user's GitHub graph. The user selects one design
+to proceed with.
+3.4 Commit Schedule Generator
+After a design is selected, PixelPush calculates a forward-looking commit schedule. This
+schedule tells the user:
+• Which days require contributions
+• How many commits to make on each active day
+• At what intervals to space commits for natural-looking graph shading
+The schedule is displayed as a calendar view with daily tasks. Users can export the schedule or
+receive it as daily reminders via browser push notifications or email.
+Schedule Recovery
+If a user misses a day, PixelPush offers a 'Recalculate from Today' feature that regenerates the
+remaining schedule dynamically, adjusting future commit targets to compensate for missed days
+without losing the overall design.
+3.5 Progress Tracker
+PixelPush continuously monitors the user's GitHub contribution graph and compares it against
+the target design. The progress tracker displays:
+• Overall completion percentage
+• A live side-by-side view of target design vs. current graph
+• Upcoming commit tasks for the next 7 days
+• Streak tracking — consecutive days on schedule
+
+-- 7 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+3.6 Social Sharing
+Sharing is the app's primary organic marketing channel. PixelPush generates dynamic image
+cards for three key moments in a user's journey:
+Sharing Moment Visual Content
+Design Started Target pixel art overlaid on the user's current contribution graph
+Progress Milestone Side-by-side comparison at 25%, 50%, and 75% completion
+Design Completed Before/after split showing empty graph vs. completed artwork
+Timelapse GIF Animated weekly progression of the graph filling in over time
+Sharing Channels
+• Twitter / X — pre-filled tweet with generated image card and app URL
+• LinkedIn — milestone completion posts for professional visibility
+• Web Share API — universal share sheet covering WhatsApp, Telegram, iMessage, and
+all installed apps
+Every share links to a public profile page at pixelpush.app/u/{username} which displays the
+user's in-progress or completed design with a prominent 'Create Yours' call-to-action. This forms
+the viral growth loop.
+
+-- 8 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+4. Technical Architecture
+4.1 Technology Stack
+Layer Technology
+Frontend Framework Next.js 14 (App Router)
+Styling Tailwind CSS
+Authentication NextAuth.js with GitHub OAuth 2.0 provider
+GitHub Data GitHub GraphQL API v4
+Pixel Art Rendering HTML5 Canvas API / D3.js
+Image Card Generation Satori + resvg-js (server-side OG image rendering)
+GIF Generation gifencoder (Node.js, server-side)
+Database PostgreSQL via Prisma ORM
+Push Notifications Web Push API (VAPID)
+Hosting & Deployment Vercel (frontend + API routes)
+CDN & Storage Vercel Blob Storage for generated image cards
+4.2 System Architecture Overview
+PixelPush follows a serverless architecture pattern, with Next.js API routes handling all backend
+logic. This eliminates the need for a separate backend server and keeps the infrastructure
+simple and cost-effective during the early growth phase.
+Core Data Flow
+1. User lands on PixelPush and clicks 'Connect GitHub'
+2. GitHub OAuth flow initiates — user authorizes the app
+3. NextAuth.js stores the access token securely in a server-side session
+4. PixelPush calls GitHub GraphQL API to fetch the full contribution calendar
+5. The contribution grid (52 × 7 days) is parsed, normalized, and stored
+6. User selects a theme — the pixel art engine generates design candidates
+7. User picks a design — the schedule generator produces a daily commit plan
+8. Progress tracker runs on a cron schedule (daily) to update completion status
+9. Share cards are generated on demand and cached in Vercel Blob Storage
+4.3 GitHub GraphQL API Query
+
+-- 9 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+The following GraphQL query is used to retrieve the full contribution calendar for the
+authenticated user:
+query GetContributionGraph($from: DateTime, $to: DateTime) {
+user(login: $username) {
+contributionsCollection(from: $from, to: $to) {
+contributionCalendar {
+weeks {
+contributionDays {
+date
+contributionCount
+color
+}
+}
+}
+}
+}
+}
+4.4 Pixel Art Engine
+The pixel art generation engine converts theme images into valid GitHub graph art through the
+following pipeline:
+10. Source image is downsampled to 52 × 7 pixels (matching the contribution grid)
+11. Each pixel is quantized to one of 5 brightness levels
+12. Brightness levels are mapped to GitHub's 5 shade hex values
+13. Multiple design variations are generated using different cropping and style parameters
+14. Each variation is rendered as an interactive grid preview using the HTML5 Canvas API
+4.5 Share Card Generation
+Share image cards are generated server-side using Satori (JSX to SVG) combined with resvg-js
+(SVG to PNG). Cards are generated on demand and cached to Vercel Blob Storage with a
+unique URL.
+The share card API endpoint accepts:
+• username — GitHub username
+• stage — started / progress / completed
+• percent — completion percentage (for progress cards)
+Generated cards are returned as PNG images optimized for Twitter (1200 × 630px) and are
+cached for 24 hours.
+
+-- 10 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+5. User Flows
+5.1 Onboarding Flow
+15. User visits pixelpush.app
+16. Clicks 'Connect GitHub' — redirected to GitHub OAuth authorization
+17. Grants permission — redirected back to PixelPush dashboard
+18. App displays current contribution graph as a pixel grid
+19. User is prompted to select a theme category
+5.2 Design Creation Flow
+20. User selects a theme (e.g., Pets)
+21. App generates 3 to 5 pixel art variations for that theme
+22. Variations are displayed as overlays on the user's graph dimensions
+23. User selects a preferred design
+24. App calculates the full commit schedule and displays it as a calendar
+25. User confirms and activates the schedule
+5.3 Active Schedule Flow
+26. User receives daily push notification or email reminder
+27. Notification specifies how many commits to make that day
+28. User opens app to view today's task and upcoming schedule
+29. After making commits, app auto-syncs with GitHub API and updates progress
+30. At milestone completions, app prompts user to share progress
+5.4 Sharing Flow
+31. User taps 'Share Progress' at any milestone
+32. App generates a dynamic share card image server-side
+33. User selects platform: Twitter, LinkedIn, or universal share
+34. Pre-filled post opens with the generated image card and app URL
+35. Recipients land on the user's public profile page at /u/{username}
+36. Public profile page shows the in-progress design with a 'Create Yours' CTA
+
+-- 11 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+6. Database Schema
+PixelPush uses PostgreSQL with Prisma ORM. The core tables are:
+6.1 Users
+Column Description
+id UUID — primary key
+github_id Integer — GitHub user ID
+username String — GitHub username
+avatar_url String — GitHub avatar URL
+access_token String — encrypted OAuth access token
+created_at Timestamp — account creation date
+updated_at Timestamp — last profile sync
+6.2 Designs
+Column Description
+id UUID — primary key
+user_id UUID — foreign key to Users
+theme String — selected theme category
+pixel_data JSONB — 52x7 grid of shade level values
+status Enum — active / completed / abandoned
+started_at Timestamp — design activation date
+target_end_at Timestamp — projected completion date
+completed_at Timestamp — actual completion date (nullable)
+6.3 Schedule Entries
+Column Description
+id UUID — primary key
+design_id UUID — foreign key to Designs
+date Date — target contribution date
+
+-- 12 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+target_count Integer — number of commits required
+actual_count Integer — actual commits made (from GitHub sync)
+status Enum — pending / completed / missed / skipped
+
+-- 13 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+7. Notifications & Reminders
+7.1 Push Notifications
+PixelPush implements the Web Push API using VAPID keys for browser-based push
+notifications. Notifications are sent via a daily cron job that runs at 8:00 AM in the user's local
+timezone.
+Notification Type Trigger
+Daily Reminder Sent on days the user has a scheduled commit target
+Streak Alert Sent when a user is at risk of breaking a streak (commits due by
+midnight)
+Milestone Sent when user crosses 25%, 50%, 75%, and 100% completion
+Completion Sent when the full design is finished — includes share prompt
+7.2 Email Notifications
+As a fallback for users who decline push notifications, PixelPush sends daily schedule digests
+and milestone alerts via email. Emails are delivered through a transactional email provider
+(Resend or Postmark).
+
+-- 14 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+8. Development Roadmap
+Phase 1 — Core MVP
+• GitHub OAuth login and contribution graph reading
+• Pixel art generation engine with 3 themes
+• Commit schedule generator and calendar view
+• Basic progress tracker
+• Public profile page (/u/username)
+Phase 2 — Engagement & Sharing
+• Social share card generation (Satori + resvg)
+• Web Share API integration
+• Twitter / X deep link sharing
+• Push notification system
+• Streak tracking and badges
+Phase 3 — Growth Features
+• Timelapse GIF generator for completed designs
+• Expanded theme library (10+ themes)
+• Schedule recalculation (recovery from missed days)
+• Email notification fallback
+• Community gallery of completed designs
+Phase 4 — Monetization
+• Launch PixelPush Pro subscription at $6-8/month
+• AI-powered project suggestion engine (Claude API integration)
+• Custom image upload — users supply their own pixel art source image
+• Team / org graphs — contribution art for GitHub organization profiles
+• Early adopter Lifetime Deal at $30-40 one-time payment
+
+-- 15 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+9. Monetization Strategy
+9.1 Philosophy
+PixelPush monetizes by enhancing the core experience — not gating it. The free tier is
+genuinely useful and shareable. Pro exists for developers who want a deeper, more
+personalized, and career-relevant experience. The goal is to make Pro feel like an obvious
+upgrade, not a paywall.
+9.2 Free Tier
+Feature Free Tier
+Image suggestions per theme 5 per theme
+Active designs at once 1
+Themes available 3 — Pets, Scenery, Abstract
+Schedule recalculation Once per active design
+AI Project Suggestions Not included
+Portfolio Fit Score Not included
+Custom image upload Not included
+Org / team graphs Not included
+Social sharing Enabled — with PixelPush watermark on share cards
+Timelapse GIF Not included
+Support Community / documentation only
+9.3 PixelPush Pro — $6-8 / month
+Pro is designed around two core upgrades: more creative options, and genuine career value.
+The AI Project Suggestion feature is the flagship Pro differentiator — it transforms PixelPush
+from a profile decoration tool into a portfolio-building companion.
+Feature Pro Tier
+Image suggestions per theme 8 per theme (vs 5 on free)
+Active designs at once 3 simultaneous designs
+Themes available All themes — current and future — plus early access
+Schedule recalculation Unlimited — full recovery from any missed days
+
+-- 16 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+AI Project Suggestions 3-5 tailored project ideas per design, matched to the user's detected
+tech stack and schedule duration
+Portfolio Fit Score Each project suggestion rated for interview and portfolio value
+Custom image upload Upload any image as the pixel art source
+Org / team graphs Contribution art for GitHub organization profiles
+Social sharing Watermark-free share cards and timelapse GIF export
+Timelapse GIF Auto-generated animated GIF of graph filling in over time
+Support Priority support with guaranteed response time
+9.4 AI Project Suggestion Engine
+The project suggestion feature is the most technically distinctive Pro capability. It uses the
+GitHub API data already collected during onboarding — specifically the user's public
+repositories — to infer their primary programming languages, frameworks, and project patterns.
+This data is combined with the selected design theme and schedule duration to generate highly
+personalized project recommendations via the Claude API.
+How It Works
+37. On design activation, PixelPush reads the user's public repos via GitHub API
+38. Languages, frameworks, and project types are extracted and ranked by frequency
+39. The design theme (e.g. Aviation) and schedule duration (e.g. 4 months) are noted
+40. A structured prompt is sent to the Claude API with this context
+41. Claude returns 3 to 5 project suggestions with titles, descriptions, estimated commit
+frequency, tech stack, and portfolio value rating
+42. Suggestions are displayed on the Pro dashboard alongside the commit schedule
+Example Output
+User: Python developer · Theme: Aviation · Schedule: 4 months
+Suggested Project: FlightPathCLI — A Python CLI tool that parses ADS-B flight data and visualises
+real-time aircraft trajectories using matplotlib. Estimated commits: 3-4 per week. Portfolio Value: High
+— demonstrates API integration, data parsing, and CLI design.
+Why This Feature Justifies Pro
+• Solves the ethical tension — users make real, meaningful commits instead of empty
+ones
+• Adds career value independent of the graph art — users finish with a portfolio piece
+• Highly personalized — no two users get the same suggestions
+
+-- 17 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+• Hard to replicate at free tier — AI inference cost is real, making it a natural Pro feature
+9.5 Early Adopter Lifetime Deal
+At launch, PixelPush will offer a one-time Lifetime Deal at $30-40, giving permanent Pro access
+for a single upfront payment. This strategy serves multiple purposes:
+• Generates upfront revenue before subscription volume builds
+• Creates a highly motivated cohort of early power users who advocate loudly
+• Developers are conditioned to respond enthusiastically to lifetime deals — it is a proven
+launch tactic in the dev tools space
+• Lifetime deal buyers become the primary source of early word-of-mouth and social
+sharing
+Lifetime Deal Pricing Recommendation
+$35 one-time — positioned as 'less than 5 months of Pro'. Cap at 200-500 redemptions to create
+urgency and prevent long-term revenue dilution.
+9.6 Revenue Projections (Conservative)
+Scenario Revenue Estimate
+500 users, 5% Pro conversion ~25 Pro users · $175-200/month MRR
+2,000 users, 8% Pro
+conversion
+~160 Pro users · $1,120-1,280/month MRR
+10,000 users, 10% Pro
+conversion
+~1,000 Pro users · $7,000-8,000/month MRR
+Launch lifetime deal (200
+sales)
+$7,000 one-time · covers ~4 months of infrastructure
+9.7 Deployment Cost vs. Revenue Crossover
+Based on the Vercel + Neon + Resend infrastructure stack, PixelPush reaches profitability at
+approximately 9 to 10 Pro subscribers — an extremely low break-even threshold that is
+achievable within days of a successful launch post.
+
+-- 18 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+10. Security Considerations
+10.1 OAuth Token Handling
+• GitHub OAuth access tokens are encrypted at rest using AES-256
+• Tokens are stored server-side only and never exposed to the client
+• NextAuth.js handles session management with HTTP-only cookies
+10.2 Rate Limiting
+• GitHub GraphQL API allows 5,000 points per hour per authenticated user
+• PixelPush batches API calls and caches results to stay well within limits
+• Contribution data is synced once every 6 hours to minimize API usage
+10.3 Data Privacy
+• PixelPush only reads contribution metadata (dates, counts, colors) — never code or
+repository content
+• Users may revoke GitHub access at any time from GitHub's application settings
+• User data is permanently deleted within 30 days of account deletion
+
+-- 19 of 20 --
+
+PixelPush | Product Documentation — Aepostrophee
+Aepostrophee · PixelPush Documentation · Confidential 2025
+11. Glossary
+Term Definition
+Contribution Graph The 52-column x 7-row heatmap on a GitHub profile showing
+commit activity over the past year
+Shade Level One of 5 green intensity values GitHub uses to represent
+contribution density on any given day
+Pixel Art Engine PixelPush's internal system for converting theme images into 52x7
+grid designs mapped to shade levels
+Commit Schedule The day-by-day plan generated by PixelPush specifying how many
+GitHub contributions to make on each date
+Share Card A dynamically generated PNG image (1200x630px) used for social
+media sharing of progress milestones
+PWA Progressive Web App — a web application installable on mobile and
+desktop with native-like capabilities
+VAPID Voluntary Application Server Identification — a protocol used to
+send Web Push notifications securely
+Satori A library developed by Vercel for converting JSX markup to SVG,
+used for server-side share card generation
+AI Project Suggestion A Pro feature that generates personalized GitHub project ideas
+matched to the user's tech stack and design theme using the
+Claude API
+Portfolio Fit Score A rating assigned to each AI-generated project suggestion indicating
+its value for software engineering interviews and portfolios
+MRR Monthly Recurring Revenue — total monthly income from active Pro
+subscriptions
+Lifetime Deal A one-time payment option offered at launch giving permanent Pro
+access, capped at a fixed number of redemptions
+Serverless Function A backend code execution model used by Vercel where functions
+run on-demand per request with no always-on server required
+PixelPush — Product Documentation v1.1
+Aepostrophee · Confidential · 2025
+
+-- 20 of 20 --

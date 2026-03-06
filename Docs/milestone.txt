@@ -1,0 +1,33 @@
+PixelPush — Development Milestones
+Developed by Aepostrophee
+====================================
+
+Milestone 0 — Project Foundation
+Auth + DB + deployment pipeline live.
+
+Milestone 1 — Contribution Graph Engine
+Real GitHub graph reading + rendering.
+
+Milestone 2 — Pixel Art Generation
+Theme selection + 5 art candidates.
+
+Milestone 3 — Commit Schedule Generator
+Day-by-day commit plan + calendar view.
+
+Milestone 4 — Progress Tracker
+Live sync + completion % + streaks.
+
+Milestone 5 — Schedule Recalculation
+Missed day recovery.
+
+Milestone 6 — Public Profile Page
+Shareable /u/username page + OG tags.
+
+Milestone 7 — Social Sharing & Share Cards
+Generated image cards + Web Share API.
+
+Milestone 8 — Notifications
+Push notifications + email fallback.
+
+Milestone 9 — Polish & Launch Prep
+Edge cases + error handling + launch ready.
