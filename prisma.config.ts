@@ -9,6 +9,11 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prisma CLI needs a URL string at generate/build time.
+    // In some CI/preview environments DATABASE_URL isn't provided until runtime;
+    // use a harmless local fallback so `prisma generate` can still succeed.
+    url:
+      process.env["DATABASE_URL"] ??
+      "postgresql://postgres:postgres@localhost:5432/postgres?schema=public",
   },
 });

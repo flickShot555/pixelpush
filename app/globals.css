@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/* Theme variables are applied at runtime by ThemeProvider (lib/theme.ts). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --pp-bg: #0d1117;
+  --pp-bgDeep: #010409;
+  --pp-surface: #161b22;
+  --pp-surface2: #21262d;
+  --pp-border: #30363d;
+  --pp-text: #e6edf3;
+  --pp-muted: #7d8590;
+  --pp-accent: #238636;
+  --pp-accentHover: #2ea043;
+  --pp-accentBg: #0d1f14;
+  --pp-accentBorder: #238636;
+  --pp-g0: #161b22;
+  --pp-g1: #0e4429;
+  --pp-g2: #006d32;
+  --pp-g3: #26a641;
+  --pp-g4: #39d353;
+  --pp-font-head: var(--font-jetbrains-mono);
+  --pp-font-body: var(--font-jetbrains-mono);
+  --pp-radius: 4px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--pp-bg);
+  --color-foreground: var(--pp-text);
+  --font-sans: var(--pp-font-body);
+  --font-mono: var(--pp-font-head);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--pp-bg);
+  color: var(--pp-text);
+  font-family: var(--pp-font-body);
+}
+
+.pp-hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pp-hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
