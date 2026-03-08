@@ -14,6 +14,7 @@ import {
 
 import { useTheme } from "@/lib/theme";
 import { BackButton } from "@/components/ui/BackButton";
+import { PwaInstallButton } from "@/components/pwa/PwaInstallButton";
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode }> = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
@@ -61,20 +62,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        height: "100vh",
-        minHeight: "100vh",
+        height: "100dvh",
+        minHeight: "100dvh",
         background: theme.bg,
         color: theme.text,
         fontFamily: "var(--pp-font-body)",
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", height: "100vh" }}>
+      {/* Desktop layout (sidebar) */}
+      <div className="hidden md:flex" style={{ height: "100%" }}>
         <aside
           style={{
             width: 64,
             flex: "0 0 64px",
-            height: "100vh",
+            height: "100%",
             background: theme.surface,
             borderRight: `1px solid ${theme.border}`,
             display: "flex",
@@ -115,6 +117,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   title={item.label}
                   aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
                   style={{
                     width: 40,
                     height: 40,
@@ -137,6 +140,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div style={{ flex: 1 }} />
+
+          <PwaInstallButton mode="icon" label="Download PixelPush" />
+
+          <div style={{ height: 10 }} />
 
           <Link
             href="/profile"
@@ -177,12 +184,124 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           style={{
             flex: 1,
             minWidth: 0,
-            height: "100vh",
+            height: "100%",
             overflowY: "auto",
             overflowX: "hidden",
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {children}
+        </div>
+      </div>
+
+      {/* Mobile layout (top bar + bottom nav) */}
+      <div className="md:hidden" style={{ height: "100%" }}>
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: "calc(90px + env(safe-area-inset-bottom))",
+            }}
+          >
+            <div
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 40,
+                height: "calc(56px + env(safe-area-inset-top))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingLeft: 16,
+                paddingRight: 16,
+                paddingTop: "env(safe-area-inset-top)",
+                background: theme.surface,
+                borderBottom: `1px solid ${theme.border}`,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--pp-font-head)",
+                  fontWeight: 800,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                PixelPush
+              </div>
+              <PwaInstallButton label="Download" />
+            </div>
+
+            {children}
+          </div>
+
+          <nav
+            aria-label="Bottom navigation"
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: "calc(72px + env(safe-area-inset-bottom))",
+              paddingBottom: "env(safe-area-inset-bottom)",
+              background: theme.surface,
+              borderTop: `1px solid ${theme.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-around",
+              zIndex: 50,
+            }}
+          >
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    textDecoration: "none",
+                    color: theme.text,
+                    padding: "10px 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    background: active ? theme.accentBg : "transparent",
+                    borderTop: active
+                      ? `2px solid ${theme.accentBorder}`
+                      : "2px solid transparent",
+                  }}
+                >
+                  <span aria-hidden style={{ lineHeight: 0 }}>{item.icon}</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: active ? theme.text : theme.muted,
+                      letterSpacing: "0.01em",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </div>
     </div>

@@ -6,6 +6,19 @@ datasource db {
   provider  = "postgresql"
 }
 
+enum DesignStatus {
+  active
+  completed
+  abandoned
+}
+
+enum ScheduleEntryStatus {
+  pending
+  completed
+  missed
+  skipped
+}
+
 model User {
   id            String    @id @default(cuid())
   githubId      String?   @unique
@@ -25,6 +38,44 @@ model User {
   sessions      Session[]
 
   targetDesign  TargetDesign?
+
+  designs       Design[]
+}
+
+model Design {
+  id          String       @id @default(cuid())
+  userId      String
+  theme       String
+  name        String
+  pixelData   Json
+  status      DesignStatus @default(active)
+  startedAt   DateTime     @default(now())
+  targetEndAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule     ScheduleEntry[]
+
+  @@index([userId])
+}
+
+model ScheduleEntry {
+  id          String              @id @default(cuid())
+  designId    String
+  date        DateTime
+  targetCount Int
+  actualCount Int                 @default(0)
+  status      ScheduleEntryStatus @default(pending)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  design      Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@unique([designId, date])
+  @@index([designId])
+  @@index([date])
 }
 
 model TargetDesign {

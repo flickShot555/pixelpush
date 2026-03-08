@@ -5,6 +5,7 @@ import type React from "react";
 
 import { Btn } from "@/components/ui/Btn";
 import { useTheme } from "@/lib/theme";
+import { PwaInstallButton } from "@/components/pwa/PwaInstallButton";
 
 export type PublicNavProps = {
   rightSlot?: React.ReactNode;
@@ -16,7 +17,7 @@ export function PublicNav({ rightSlot, fixed = false }: PublicNavProps) {
 
   return (
     <nav
-      className={fixed ? "fixed left-0 right-0 top-0" : undefined}
+      className={(fixed ? "fixed left-0 right-0 top-0 " : "") + "px-4 md:px-12"}
       style={
         fixed
           ? {
@@ -24,7 +25,6 @@ export function PublicNav({ rightSlot, fixed = false }: PublicNavProps) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0 48px",
               borderBottom: `1px solid ${theme.border}`,
               background: theme.surface,
               zIndex: 50,
@@ -34,7 +34,6 @@ export function PublicNav({ rightSlot, fixed = false }: PublicNavProps) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0 48px",
               borderBottom: `1px solid ${theme.border}`,
               background: theme.surface,
             }
@@ -64,6 +63,7 @@ export function PublicNav({ rightSlot, fixed = false }: PublicNavProps) {
       <div className="flex items-center gap-2">
         {rightSlot ?? (
           <>
+            <PwaInstallButton />
             <Btn variant="ghost" small href="/onboarding">
               Sign In
             </Btn>

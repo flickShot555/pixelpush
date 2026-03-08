@@ -30,8 +30,8 @@ export function BackButton({ className, style }: BackButtonProps) {
       }}
       style={{
         position: "fixed",
-        top: 72,
-        left: 50,
+        top: "max(16px, env(safe-area-inset-top))",
+        left: "max(16px, env(safe-area-inset-left))",
         zIndex: 50,
         height: 32,
         padding: "0 10px",

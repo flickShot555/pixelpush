@@ -69,6 +69,8 @@ export function DesignClient() {
 
   const [activeTheme, setActiveTheme] = useState<ThemeName>("Pets");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const themes: ThemeName[] = ["Pets", "Scenery", "Abstract", "Space", "Aviation", "Cars"];
 
@@ -311,6 +313,12 @@ export function DesignClient() {
                   >
                     This design will take approximately 68 days to complete based on your schedule.
                   </div>
+
+                  {error ? (
+                    <div style={{ marginTop: 10, color: theme.danger, fontSize: 13, fontWeight: 700 }}>
+                      {error}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex gap-3">
@@ -324,12 +332,40 @@ export function DesignClient() {
                   </Btn>
                   <Btn
                     variant="primary"
-                    onClick={() => {
-                      router.push("/schedule");
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      setError(null);
+                      try {
+                        const res = await fetch("/api/design/activate", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: selected.name,
+                            theme: selected.theme,
+                            grid: selected.getData(),
+                          }),
+                        });
+
+                        const json = (await res.json().catch(() => null)) as
+                          | { ok?: boolean; error?: string }
+                          | null;
+
+                        if (!res.ok || !json?.ok) {
+                          setError(json?.error || "Unable to generate schedule");
+                          setBusy(false);
+                          return;
+                        }
+
+                        router.push("/schedule");
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : "Unable to generate schedule");
+                        setBusy(false);
+                      }
                     }}
                     style={{ display: "inline-flex", alignItems: "center" }}
                   >
-                    Generate Schedule →
+                    {busy ? "Generating…" : "Generate Schedule →"}
                   </Btn>
                 </div>
               </div>

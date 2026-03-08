@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
@@ -8,31 +8,6 @@ import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useTheme } from "@/lib/theme";
-
-// TODO: replace with real API data
-const TARGET_COMMITS: Record<number, number> = {
-  3: 2,
-  5: 3,
-  8: 1,
-  10: 4,
-  12: 2,
-  14: 3,
-  17: 2,
-  19: 1,
-  21: 3,
-  24: 4,
-  26: 2,
-};
-
-// TODO: replace with real API data
-const COMPLETED_COMMITS: Record<number, number> = {
-  3: 2,
-  5: 3,
-  8: 1,
-};
-
-// TODO: use real date
-const TODAY = 10;
 
 type ViewMode = "calendar" | "list";
 
@@ -66,8 +41,60 @@ function getStatusStyle(status: RowStatus, t: ReturnType<typeof useTheme>["theme
   };
 }
 
-function formatDate(day: number) {
-  return `Mar ${day}, 2025`;
+type ApiDesign = {
+  id: string;
+  name: string;
+  theme: string;
+  startedAt: string;
+  targetEndAt: string | null;
+};
+
+type ApiEntry = {
+  date: string;
+  targetCount: number;
+  actualCount: number;
+  status: "pending" | "completed" | "missed" | "skipped";
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toMonthParamUtc(date: Date) {
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}`;
+}
+
+function parseMonthParam(month: string) {
+  const m = /^([0-9]{4})-([0-9]{2})$/.exec(month);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const monthIndex = Number(m[2]) - 1;
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) return null;
+  return { year, monthIndex };
+}
+
+function addMonths(year: number, monthIndex: number, delta: number) {
+  const d = new Date(Date.UTC(year, monthIndex, 1));
+  d.setUTCMonth(d.getUTCMonth() + delta);
+  return { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth() };
+}
+
+function monthLabel(year: number, monthIndex: number) {
+  const d = new Date(Date.UTC(year, monthIndex, 1));
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+}
+
+function formatDayUtc(dateIso: string) {
+  const d = new Date(dateIso);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(d);
+}
+
+function daysRemaining(targetEndAt: string | null, now: Date) {
+  if (!targetEndAt) return null;
+  const end = new Date(targetEndAt);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diff = Math.ceil((end.getTime() - now.getTime()) / msPerDay);
+  return Math.max(0, diff);
 }
 
 export function ScheduleClient() {
@@ -77,11 +104,33 @@ export function ScheduleClient() {
 
   const view: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
 
+  const rawMonth = searchParams.get("month");
+  const monthParam = rawMonth && parseMonthParam(rawMonth) ? rawMonth : null;
+
+  const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [design, setDesign] = useState<ApiDesign | null>(null);
+  const [entries, setEntries] = useState<ApiEntry[]>([]);
+  const [refreshToken, setRefreshToken] = useState(0);
+
   useEffect(() => {
-    const raw = searchParams.get("view");
-    if (raw !== "calendar" && raw !== "list") {
+    const rawView = searchParams.get("view");
+    const rawMonthNow = searchParams.get("month");
+    const hasValidMonth = rawMonthNow != null && parseMonthParam(rawMonthNow) != null;
+
+    if (rawView !== "calendar" && rawView !== "list") {
       const next = new URLSearchParams(searchParams.toString());
       next.set("view", "calendar");
+      if (!hasValidMonth) next.set("month", toMonthParamUtc(new Date()));
+      router.replace(`/schedule?${next.toString()}`);
+      return;
+    }
+
+    if (!hasValidMonth) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.set("month", toMonthParamUtc(new Date()));
       router.replace(`/schedule?${next.toString()}`);
     }
   }, [router, searchParams]);
@@ -92,20 +141,97 @@ export function ScheduleClient() {
     router.replace(`/schedule?${next.toString()}`);
   }
 
-  const listRows: ListRow[] = useMemo(
-    () => [
-      { date: "Mar 3, 2025", target: "2", actual: "2", status: "completed" },
-      { date: "Mar 5, 2025", target: "3", actual: "3", status: "completed" },
-      { date: "Mar 8, 2025", target: "1", actual: "1", status: "completed" },
-      { date: "Mar 10, 2025", target: "4", actual: "1", status: "in-progress" },
-      { date: "Mar 12, 2025", target: "2", actual: "0", status: "pending" },
-      { date: "Mar 14, 2025", target: "3", actual: "0", status: "pending" },
-      { date: "Mar 17, 2025", target: "2", actual: "0", status: "pending" },
-    ],
-    []
-  );
+  function setMonthAndUrl(nextMonth: string) {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("month", nextMonth);
+    router.replace(`/schedule?${next.toString()}`);
+  }
+
+  useEffect(() => {
+    const month = monthParam;
+    if (!month) return;
+    let cancelled = false;
+
+    async function run(m: string) {
+      setBusy(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/schedule?month=${encodeURIComponent(m)}`, { method: "GET" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; error?: string; design?: ApiDesign | null; entries?: ApiEntry[] }
+          | null;
+
+        if (!res.ok || !json?.ok) {
+          if (cancelled) return;
+          setError(json?.error || "Unable to load schedule");
+          setDesign(null);
+          setEntries([]);
+          setBusy(false);
+          return;
+        }
+
+        if (cancelled) return;
+        setDesign(json.design ?? null);
+        setEntries(json.entries ?? []);
+        setBusy(false);
+      } catch (e) {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Unable to load schedule");
+        setDesign(null);
+        setEntries([]);
+        setBusy(false);
+      }
+    }
+
+    run(month);
+    return () => {
+      cancelled = true;
+    };
+  }, [monthParam, refreshToken]);
+
+  const listRows: ListRow[] = useMemo(() => {
+    const now = new Date();
+    const nowKey = toMonthParamUtc(now);
+
+    return entries
+      .filter((e) => e.targetCount > 0)
+      .map((e) => {
+        const status: RowStatus =
+          e.status === "completed"
+            ? "completed"
+            : toMonthParamUtc(new Date(e.date)) === nowKey && new Date(e.date).getUTCDate() === now.getUTCDate()
+              ? "in-progress"
+              : "pending";
+
+        return {
+          date: formatDayUtc(e.date),
+          target: String(e.targetCount),
+          actual: String(e.actualCount ?? 0),
+          status,
+        };
+      });
+  }, [entries]);
 
   const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const monthParts = monthParam ? parseMonthParam(monthParam) : null;
+  const year = monthParts?.year ?? new Date().getUTCFullYear();
+  const monthIndex = monthParts?.monthIndex ?? new Date().getUTCMonth();
+
+  const startDow = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const now = new Date();
+  const nowMonth = toMonthParamUtc(now);
+
+  const entriesByDay = useMemo(() => {
+    const map = new Map<number, ApiEntry>();
+    for (const e of entries) {
+      const d = new Date(e.date);
+      if (d.getUTCFullYear() !== year || d.getUTCMonth() !== monthIndex) continue;
+      map.set(d.getUTCDate(), e);
+    }
+    return map;
+  }, [entries, monthIndex, year]);
 
   return (
     <main
@@ -148,11 +274,54 @@ export function ScheduleClient() {
                 fontFamily: "var(--pp-font-body)",
               }}
             >
-              Your commit plan for Midnight Cat · 68 days remaining
+              {design ? (
+                (() => {
+                  const remaining = daysRemaining(design.targetEndAt, now);
+                  return remaining != null
+                    ? `Your commit plan for ${design.name} · ${remaining} days remaining`
+                    : `Your commit plan for ${design.name}`;
+                })()
+              ) : (
+                "Your commit plan"
+              )}
             </p>
           </div>
 
-          <div style={{ paddingTop: 2 }}>
+          <div className="flex items-center" style={{ paddingTop: 2, gap: 10 }}>
+            {design ? (
+              <Btn
+                variant="secondary"
+                small
+                disabled={busy || recalculating}
+                onClick={async () => {
+                  if (recalculating) return;
+                  setRecalculating(true);
+                  setError(null);
+                  try {
+                    const res = await fetch("/api/schedule/recalculate", { method: "POST" });
+                    const json = (await res.json().catch(() => null)) as
+                      | { ok?: boolean; error?: string }
+                      | null;
+                    if (!res.ok || !json?.ok) {
+                      setError(json?.error || "Unable to recalculate schedule");
+                      setRecalculating(false);
+                      return;
+                    }
+
+                    const nowMonth = toMonthParamUtc(new Date());
+                    setMonthAndUrl(nowMonth);
+                    setRefreshToken((v) => v + 1);
+                    setRecalculating(false);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Unable to recalculate schedule");
+                    setRecalculating(false);
+                  }
+                }}
+              >
+                {recalculating ? "Recalculating…" : "Recalculate from Today"}
+              </Btn>
+            ) : null}
+
             <ViewToggle
               options={["calendar", "list"]}
               value={view}
@@ -165,6 +334,23 @@ export function ScheduleClient() {
         {view === "calendar" ? (
           <section className="mt-6">
             <Card elevated style={{ padding: "24px 28px" }}>
+              {error ? (
+                <div style={{ marginBottom: 12, color: theme.danger, fontSize: 13, fontWeight: 700 }}>
+                  {error}
+                </div>
+              ) : null}
+
+              {!design && !busy && !error ? (
+                <div className="flex items-center justify-between gap-4" style={{ marginBottom: 12 }}>
+                  <div style={{ color: theme.muted, fontSize: 13, fontFamily: "var(--pp-font-body)" }}>
+                    No active design. Generate a schedule to get started.
+                  </div>
+                  <Btn variant="secondary" small onClick={() => router.push("/design")}>
+                    Choose Design
+                  </Btn>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between gap-4">
                 <div
                   style={{
@@ -174,15 +360,20 @@ export function ScheduleClient() {
                     fontWeight: 700,
                   }}
                 >
-                  March 2025
+                  {monthLabel(year, monthIndex)}
                 </div>
 
                 <div className="flex gap-2">
                   <Btn
                     variant="secondary"
                     small
+                    disabled={!monthParam}
                     onClick={() => {
-                      console.log("Prev month");
+                      if (!monthParam) return;
+                      const parts = parseMonthParam(monthParam);
+                      if (!parts) return;
+                      const prev = addMonths(parts.year, parts.monthIndex, -1);
+                      setMonthAndUrl(`${prev.year}-${pad2(prev.monthIndex + 1)}`);
                     }}
                   >
                     ← Prev
@@ -190,8 +381,13 @@ export function ScheduleClient() {
                   <Btn
                     variant="secondary"
                     small
+                    disabled={!monthParam}
                     onClick={() => {
-                      console.log("Next month");
+                      if (!monthParam) return;
+                      const parts = parseMonthParam(monthParam);
+                      if (!parts) return;
+                      const nextM = addMonths(parts.year, parts.monthIndex, 1);
+                      setMonthAndUrl(`${nextM.year}-${pad2(nextM.monthIndex + 1)}`);
                     }}
                   >
                     Next →
@@ -218,15 +414,16 @@ export function ScheduleClient() {
               </div>
 
               <div className="mt-2 grid grid-cols-7 gap-1">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: startDow }).map((_, i) => (
                   <div key={`off-${i}`} className="aspect-square" />
                 ))}
 
-                {Array.from({ length: 31 }).map((_, i) => {
+                {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
-                  const isTarget = TARGET_COMMITS[day] != null;
-                  const isCompleted = COMPLETED_COMMITS[day] != null;
-                  const isToday = day === TODAY;
+                  const entry = entriesByDay.get(day);
+                  const isTarget = entry != null && entry.targetCount > 0;
+                  const isCompleted = entry?.status === "completed";
+                  const isToday = monthParam === nowMonth && day === now.getUTCDate();
                   const isPendingTarget = isTarget && !isCompleted && !isToday;
                   const isNonTarget = !isTarget;
 
@@ -247,11 +444,13 @@ export function ScheduleClient() {
                   const numberColor = isToday ? theme.onAccent : isNonTarget ? theme.muted : theme.text;
 
                   const subtitle = isToday
-                    ? "1/3"
+                    ? entry
+                      ? `${entry.actualCount}/${entry.targetCount}`
+                      : null
                     : isCompleted
                       ? "check"
                       : isPendingTarget
-                        ? `${TARGET_COMMITS[day]}c`
+                        ? `${entry?.targetCount ?? 0}c`
                         : null;
 
                   return (
@@ -259,10 +458,37 @@ export function ScheduleClient() {
                       key={day}
                       type="button"
                       disabled={!isTarget}
-                      onClick={() => {
-                        if (!isTarget) return;
-                        console.log(`Clicked ${formatDate(day)}`);
-                      }}
+                        onClick={async () => {
+                          if (!isTarget) return;
+                          if (!entry) return;
+                          if (!monthParam) return;
+                          if (syncing) return;
+
+                          setError(null);
+                          setSyncing(true);
+                          try {
+                            const res = await fetch("/api/schedule/sync", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ date: entry.date }),
+                            });
+                            const json = (await res.json().catch(() => null)) as
+                              | { ok?: boolean; error?: string }
+                              | null;
+
+                            if (!res.ok || !json?.ok) {
+                              setError(json?.error || "Unable to sync commits");
+                              setSyncing(false);
+                              return;
+                            }
+
+                            setRefreshToken((v) => v + 1);
+                            setSyncing(false);
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : "Unable to sync commits");
+                            setSyncing(false);
+                          }
+                        }}
                       className="aspect-square"
                       style={{
                         background: bg,
@@ -368,6 +594,11 @@ export function ScheduleClient() {
         ) : (
           <section className="mt-6">
             <Card elevated style={{ padding: 0, overflow: "hidden" }}>
+              {error ? (
+                <div style={{ padding: "12px 20px", color: theme.danger, fontSize: 13, fontWeight: 700 }}>
+                  {error}
+                </div>
+              ) : null}
               <div
                 className="grid"
                 style={{

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -22,6 +22,20 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "PixelPush",
   description: "Turn your GitHub graph into art",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "PixelPush",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [{ url: "/file.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/file.svg", type: "image/svg+xml" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0d1117",
 };
 
 export default function RootLayout({
