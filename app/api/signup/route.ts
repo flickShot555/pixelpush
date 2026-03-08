@@ -57,6 +57,13 @@ export async function POST(req: Request) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unable to create account";
 
+    if (msg.includes("DATABASE_URL is not set")) {
+      return NextResponse.json(
+        { ok: false, error: "Server is not configured (missing database)" },
+        { status: 500 }
+      );
+    }
+
     // Best-effort unique constraint messaging.
     if (msg.toLowerCase().includes("unique") || msg.toLowerCase().includes("duplicate")) {
       return badRequest("That email or username is already in use");

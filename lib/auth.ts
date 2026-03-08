@@ -6,14 +6,17 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  secret: process.env.AUTH_SECRET,
+  secret: authSecret,
   session: {
     strategy: "jwt",
   },
-  providers: [
-    CredentialsProvider({
+  providers: (() => {
+    const providers: NextAuthOptions["providers"] = [
+      CredentialsProvider({
       name: "Credentials",
       credentials: {
         identifier: { label: "Email or Username", type: "text" },
@@ -49,28 +52,41 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID ?? "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
-      authorization: {
-        params: {
-          scope: "read:user user:email repo",
-        },
-      },
-      profile(profile) {
-        // Ensure required Prisma fields exist for user creation.
-        return {
-          id: String(profile.id),
-          githubId: String(profile.id),
-          username: profile.login,
-          name: profile.name,
-          email: profile.email,
-          image: profile.avatar_url,
-          avatarUrl: profile.avatar_url,
-        };
-      },
-    }),
-  ],
+    ];
+
+    const githubClientId = (process.env.GITHUB_CLIENT_ID ?? "").trim();
+    const githubClientSecret = (process.env.GITHUB_CLIENT_SECRET ?? "").trim();
+
+    // Only enable GitHub OAuth when it is configured.
+    // If configured with empty strings, NextAuth will throw and break all /api/auth/* routes.
+    if (githubClientId && githubClientSecret) {
+      providers.push(
+        GitHubProvider({
+          clientId: githubClientId,
+          clientSecret: githubClientSecret,
+          authorization: {
+            params: {
+              scope: "read:user user:email repo",
+            },
+          },
+          profile(profile) {
+            // Ensure required Prisma fields exist for user creation.
+            return {
+              id: String(profile.id),
+              githubId: String(profile.id),
+              username: profile.login,
+              name: profile.name,
+              email: profile.email,
+              image: profile.avatar_url,
+              avatarUrl: profile.avatar_url,
+            };
+          },
+        })
+      );
+    }
+
+    return providers;
+  })(),
   callbacks: {
     async jwt({ token, account, profile, user }) {
       if (account?.access_token) {

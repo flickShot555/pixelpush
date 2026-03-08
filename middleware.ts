@@ -14,6 +14,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/api/share-card/data")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname === "/favicon.ico") return true;
+  if (pathname === "/manifest.webmanifest") return true;
   return false;
 }
 
@@ -22,7 +23,10 @@ export async function middleware(req: NextRequest) {
 
   if (isPublicPath(pathname)) return NextResponse.next();
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  });
 
   if (!token) {
     const url = req.nextUrl.clone();
