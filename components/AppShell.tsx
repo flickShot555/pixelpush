@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "@/lib/theme";
+import { BackButton } from "@/components/ui/BackButton";
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode }> = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
@@ -25,6 +26,8 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode }> =
 
 function shouldHideSidebar(pathname: string): boolean {
   if (pathname === "/") return true;
+  if (pathname === "/login") return true;
+  if (pathname === "/signup") return true;
   if (pathname === "/test") return true;
   if (pathname.startsWith("/onboarding")) return true;
   if (pathname.startsWith("/pricing")) return true;
@@ -44,7 +47,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const hideSidebar = shouldHideSidebar(pathname);
 
-  if (hideSidebar) return <>{children}</>;
+  const showBackButton =
+    hideSidebar && pathname !== "/" && !pathname.startsWith("/pricing");
+
+  if (hideSidebar)
+    return (
+      <>
+        {showBackButton ? <BackButton /> : null}
+        {children}
+      </>
+    );
 
   return (
     <div
@@ -126,34 +138,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div style={{ flex: 1 }} />
 
-          <div
+          <Link
+            href="/profile"
             title={session?.user?.name ?? session?.user?.email ?? "Not signed in"}
-            aria-label="User"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 999,
-              border: `1px solid ${theme.border}`,
-              background: theme.surface2,
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            aria-label="Profile"
+            style={{ textDecoration: "none" }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {session?.user?.image ? (
-              <img
-                src={session.user.image}
-                alt=""
-                width={40}
-                height={40}
-                style={{ width: 40, height: 40, objectFit: "cover" }}
-              />
-            ) : (
-              <User aria-hidden size={18} color={theme.muted} />
-            )}
-          </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 999,
+                border: `1px solid ${theme.border}`,
+                background: theme.surface2,
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt=""
+                  width={40}
+                  height={40}
+                  style={{ width: 40, height: 40, objectFit: "cover" }}
+                />
+              ) : (
+                <User aria-hidden size={18} color={theme.muted} />
+              )}
+            </div>
+          </Link>
         </aside>
 
         <div

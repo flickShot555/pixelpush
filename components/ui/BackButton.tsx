@@ -1,0 +1,59 @@
+"use client";
+
+import type React from "react";
+
+import { useRouter } from "next/navigation";
+
+import { useTheme } from "@/lib/theme";
+
+export type BackButtonProps = {
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+export function BackButton({ className, style }: BackButtonProps) {
+  const router = useRouter();
+  const { theme } = useTheme();
+
+  return (
+    <button
+      type="button"
+      aria-label="Back"
+      className={className}
+      onClick={() => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+          router.back();
+          return;
+        }
+
+        router.push("/");
+      }}
+      style={{
+        position: "fixed",
+        top: 72,
+        left: 50,
+        zIndex: 50,
+        height: 32,
+        padding: "0 10px",
+        borderRadius: theme.borderRadius,
+        border: `1px solid ${theme.border}`,
+        background: theme.surface,
+        color: theme.text,
+        fontFamily: "var(--pp-font-body)",
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: "0.02em",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        cursor: "pointer",
+        ...style,
+      }}
+    >
+      <span aria-hidden style={{ color: theme.muted, fontSize: 14, lineHeight: 0 }}>
+        ←
+      </span>
+      Back
+    </button>
+  );
+}

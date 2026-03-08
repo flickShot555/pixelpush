@@ -12,9 +12,11 @@ type BtnProps = {
   variant?: BtnVariant;
   small?: boolean;
   href?: string;
-  onClick?: () => void;
+  onClick?: () => void | Promise<void>;
+  disabled?: boolean;
   style?: React.CSSProperties;
   className?: string;
+  hoverOpacity?: number;
 };
 
 export function Btn({
@@ -23,8 +25,10 @@ export function Btn({
   small = false,
   href,
   onClick,
+  disabled = false,
   style,
   className,
+  hoverOpacity,
 }: BtnProps) {
   const { theme } = useTheme();
   const [hovered, setHovered] = useState(false);
@@ -35,7 +39,6 @@ export function Btn({
 
     const isPrimary = variant === "primary";
     const isSecondary = variant === "secondary";
-    const isGhost = variant === "ghost";
 
     const background = isPrimary
       ? hovered
@@ -55,6 +58,16 @@ export function Btn({
 
     const color = isPrimary ? theme.onAccent : theme.text;
 
+    const opacity = hovered && typeof hoverOpacity === "number" ? hoverOpacity : 1;
+
+    const disabledStyle: React.CSSProperties = disabled
+      ? {
+          opacity: 0.55,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        }
+      : {};
+
     return {
       display: "inline-flex",
       alignItems: "center",
@@ -63,6 +76,7 @@ export function Btn({
       background,
       color,
       border,
+      opacity,
       borderRadius: theme.borderRadius,
       padding,
       fontSize,
@@ -74,11 +88,17 @@ export function Btn({
       userSelect: "none",
       lineHeight: 1.2,
       ...style,
+      ...disabledStyle,
     };
-  }, [hovered, small, style, theme, variant]);
+  }, [disabled, hoverOpacity, hovered, small, style, theme, variant]);
+
+  async function handleClick() {
+    if (disabled) return;
+    await onClick?.();
+  }
 
   const commonProps = {
-    onClick,
+    onClick: onClick ? handleClick : undefined,
     onMouseEnter: () => setHovered(true),
     onMouseLeave: () => setHovered(false),
     style: baseStyle,
@@ -86,6 +106,9 @@ export function Btn({
   };
 
   if (href) {
+    if (disabled) {
+      return <span {...commonProps}>{children}</span>;
+    }
     return (
       <Link href={href} prefetch={false} {...commonProps}>
         {children}
@@ -94,7 +117,7 @@ export function Btn({
   }
 
   return (
-    <button type="button" {...commonProps}>
+    <button type="button" disabled={disabled} {...commonProps}>
       {children}
     </button>
   );

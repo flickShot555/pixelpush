@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Check, Circle, Flame, Target, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Tag } from "@/components/ui/Tag";
 import { StatCard } from "@/components/ui/StatCard";
 import {
@@ -174,6 +175,11 @@ export default function DashboardPage() {
             >
               Welcome back, flickShot555. You have commits due today.
             </p>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Badge>🔥 12 day streak</Badge>
+              <Badge>🎨 Active design</Badge>
+            </div>
           </div>
           <div style={{ paddingTop: 2 }}>
             <Tag>Active: {targetName} · 34% complete</Tag>

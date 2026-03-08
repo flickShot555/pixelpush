@@ -17,13 +17,16 @@ export type Theme = {
   surface: string;
   surface2: string;
   border: string;
+  border2: string;
   text: string;
   muted: string;
+  faint: string;
   accent: string;
   accentHover: string;
   onAccent: string;
   accentBg: string;
   accentBorder: string;
+  danger: string;
   warn: string;
   g0: string;
   g1: string;
@@ -46,13 +49,16 @@ export const THEMES: Record<ThemeMode, Theme> = {
     surface: "#161b22",
     surface2: "#21262d",
     border: "#30363d",
+    border2: "#21262d",
     text: "#e6edf3",
     muted: "#7d8590",
+    faint: "#484f58",
     accent: "#238636",
     accentHover: "#2ea043",
     onAccent: "#ffffff",
     accentBg: "#0d1f14",
     accentBorder: "#238636",
+    danger: "#f85149",
     warn: "#e3b341",
     g0: "#161b22",
     g1: "#0e4429",
@@ -73,13 +79,16 @@ export const THEMES: Record<ThemeMode, Theme> = {
     surface: "#ffffff",
     surface2: "#f0fdf4",
     border: "#bbf7d0",
+    border2: "#d1fae5",
     text: "#052e16",
     muted: "#4b7a5a",
+    faint: "#a3c4a8",
     accent: "#16a34a",
     accentHover: "#15803d",
     onAccent: "#ffffff",
     accentBg: "#dcfce7",
     accentBorder: "#4ade80",
+    danger: "#dc2626",
     warn: "#d97706",
     g0: "#ebedf0",
     g1: "#9be9a8",
@@ -119,12 +128,15 @@ function applyThemeCssVars(theme: Theme, mode: ThemeMode) {
   root.style.setProperty("--pp-surface", theme.surface);
   root.style.setProperty("--pp-surface2", theme.surface2);
   root.style.setProperty("--pp-border", theme.border);
+  root.style.setProperty("--pp-border2", theme.border2);
   root.style.setProperty("--pp-text", theme.text);
   root.style.setProperty("--pp-muted", theme.muted);
+  root.style.setProperty("--pp-faint", theme.faint);
   root.style.setProperty("--pp-accent", theme.accent);
   root.style.setProperty("--pp-accentHover", theme.accentHover);
   root.style.setProperty("--pp-accentBg", theme.accentBg);
   root.style.setProperty("--pp-accentBorder", theme.accentBorder);
+  root.style.setProperty("--pp-danger", theme.danger);
   root.style.setProperty("--pp-g0", theme.g0);
   root.style.setProperty("--pp-g1", theme.g1);
   root.style.setProperty("--pp-g2", theme.g2);

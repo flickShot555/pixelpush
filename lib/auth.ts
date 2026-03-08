@@ -1,6 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +13,42 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        identifier: { label: "Email or Username", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const identifier = (credentials?.identifier ?? "").trim();
+        const password = credentials?.password ?? "";
+
+        if (!identifier || !password) return null;
+
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: identifier.toLowerCase() },
+              { username: identifier },
+            ],
+          },
+        });
+
+        if (!user?.passwordHash) return null;
+
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          username: user.username,
+          githubId: user.githubId ?? undefined,
+        };
+      },
+    }),
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID ?? "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
@@ -34,9 +72,16 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
+      }
+
+      // Credentials sign-in (local PixelPush account)
+      if (user && typeof user === "object") {
+        const u = user as { username?: string; githubId?: string };
+        if (u.username) token.username = u.username;
+        if (u.githubId) token.githubId = u.githubId;
       }
 
       if (profile && typeof profile === "object") {

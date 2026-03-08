@@ -7,12 +7,15 @@
   --pp-surface: #161b22;
   --pp-surface2: #21262d;
   --pp-border: #30363d;
+  --pp-border2: #21262d;
   --pp-text: #e6edf3;
   --pp-muted: #7d8590;
+  --pp-faint: #484f58;
   --pp-accent: #238636;
   --pp-accentHover: #2ea043;
   --pp-accentBg: #0d1f14;
   --pp-accentBorder: #238636;
+  --pp-danger: #f85149;
   --pp-g0: #161b22;
   --pp-g1: #0e4429;
   --pp-g2: #006d32;
