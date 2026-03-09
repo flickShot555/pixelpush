@@ -71,6 +71,8 @@ export function DesignClient() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeDesign, setActiveDesign] = useState<null | { id: string; name: string }>(null);
+  const [loadingActive, setLoadingActive] = useState(true);
 
   const themes: ThemeName[] = ["Pets", "Scenery", "Abstract", "Space", "Aviation", "Cars"];
 
@@ -119,6 +121,37 @@ export function DesignClient() {
   }
 
   const selected = candidates[selectedIdx];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoadingActive(true);
+      try {
+        const res = await fetch("/api/design/active", { method: "GET" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; activeDesign?: { id: string; name: string } | null }
+          | null;
+        if (cancelled) return;
+        if (!res.ok || !json?.ok) {
+          setActiveDesign(null);
+          setLoadingActive(false);
+          return;
+        }
+        setActiveDesign(json.activeDesign ?? null);
+        setLoadingActive(false);
+      } catch {
+        if (cancelled) return;
+        setActiveDesign(null);
+        setLoadingActive(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canActivate = !loadingActive && !activeDesign;
 
   return (
     <main
@@ -319,9 +352,62 @@ export function DesignClient() {
                       {error}
                     </div>
                   ) : null}
+
+                  {activeDesign ? (
+                    <div style={{ marginTop: 10, color: theme.warn, fontSize: 13, fontWeight: 700 }}>
+                      You already have an active design ({activeDesign.name}). Complete it or discard it to start a new one.
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex gap-3">
+                  {activeDesign ? (
+                    <Btn
+                      variant="secondary"
+                      onClick={() => {
+                        router.push("/schedule");
+                      }}
+                    >
+                      Go to schedule
+                    </Btn>
+                  ) : null}
+
+                  {activeDesign ? (
+                    <Btn
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={async () => {
+                        const ok = window.confirm(
+                          `Discard your current design (${activeDesign.name})?\n\nThis ends your current progress and may affect your streak. This cannot be undone.`
+                        );
+                        if (!ok) return;
+
+                        setBusy(true);
+                        setError(null);
+                        try {
+                          const res = await fetch("/api/design/discard", { method: "POST" });
+                          const json = (await res.json().catch(() => null)) as
+                            | { ok?: boolean; error?: string }
+                            | null;
+                          if (!res.ok || !json?.ok) {
+                            setError(json?.error || "Unable to discard design");
+                            setBusy(false);
+                            return;
+                          }
+                          setActiveDesign(null);
+                          setBusy(false);
+
+                          router.replace("/design");
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : "Unable to discard design");
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      Discard current design
+                    </Btn>
+                  ) : null}
+
                   <Btn
                     variant="secondary"
                     onClick={() => {
@@ -332,7 +418,7 @@ export function DesignClient() {
                   </Btn>
                   <Btn
                     variant="primary"
-                    disabled={busy}
+                    disabled={busy || !canActivate}
                     onClick={async () => {
                       setBusy(true);
                       setError(null);

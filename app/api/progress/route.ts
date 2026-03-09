@@ -195,6 +195,18 @@ export async function GET() {
   const completedDays = synced.filter((e) => e.status === "completed").length;
   const daysMissed = synced.filter((e) => e.status === "missed").length;
 
+  // If all scheduled days are completed, mark the design as completed.
+  if (totalDays > 0 && completedDays === totalDays) {
+    await prisma.design.update({
+      where: { id: design.id },
+      data: {
+        status: "completed",
+        completedAt: new Date(),
+      },
+      select: { id: true },
+    });
+  }
+
   const elapsed = synced.filter((e) => e.status !== "skipped" && e.date <= todayStart);
   const daysElapsed = elapsed.length;
   const daysOnSchedule = elapsed.filter((e) => e.status === "completed").length;

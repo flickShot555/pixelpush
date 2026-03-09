@@ -8,12 +8,19 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params: { username: string };
-  searchParams?: Record<string, string | string[] | undefined>;
+type RouteParams = {
+  username: string;
 };
 
-function getFirst(sp: PageProps["searchParams"], key: string): string | undefined {
+type RouteSearchParams = Record<string, string | string[] | undefined>;
+
+type PageProps = {
+  // Next.js 16+ may provide these as Promises (sync dynamic APIs).
+  params: RouteParams | Promise<RouteParams>;
+  searchParams?: RouteSearchParams | Promise<RouteSearchParams>;
+};
+
+function getFirst(sp: RouteSearchParams | undefined, key: string): string | undefined {
   const v = sp?.[key];
   if (typeof v === "string") return v;
   if (Array.isArray(v)) return v[0];
@@ -34,10 +41,13 @@ function parsePercent(value: string | undefined): number | undefined {
 }
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
-  const { username } = params;
+  const { username } = await params;
+  const sp = (await searchParams) as RouteSearchParams | undefined;
 
-  const stage = isStage(getFirst(searchParams, "stage")) ? (getFirst(searchParams, "stage") as "started" | "progress" | "completed") : "progress";
-  const percent = parsePercent(getFirst(searchParams, "percent"));
+  const stage = isStage(getFirst(sp, "stage"))
+    ? (getFirst(sp, "stage") as "started" | "progress" | "completed")
+    : "progress";
+  const percent = parsePercent(getFirst(sp, "percent"));
 
   const baseUrlRaw = process.env.NEXT_PUBLIC_URL || process.env.NEXTAUTH_URL || "";
   const baseUrl = baseUrlRaw.replace(/\/$/, "");
@@ -89,8 +99,11 @@ function monthYearLabel(date: Date): string {
 }
 
 export default async function PublicProfilePage({ params }: PageProps) {
+  const { username } = await params;
+  if (!username) notFound();
+
   const user = await prisma.user.findUnique({
-    where: { username: params.username },
+    where: { username },
     select: { id: true, username: true, image: true, createdAt: true },
   });
   if (!user) notFound();

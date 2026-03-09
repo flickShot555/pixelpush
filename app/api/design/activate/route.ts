@@ -83,10 +83,19 @@ export async function POST(req: Request) {
   const generated = generateSchedule({ grid, startDate, thresholds, seed });
 
   const result = await prisma.$transaction(async (tx) => {
-    await tx.design.updateMany({
+    const existing = await tx.design.findFirst({
       where: { userId: user.id, status: "active" },
-      data: { status: "abandoned" },
+      orderBy: [{ startedAt: "desc" }, { createdAt: "desc" }],
+      select: { id: true, name: true },
     });
+
+    if (existing) {
+      return {
+        ok: false as const,
+        status: 409 as const,
+        error: `You already have an active design (${existing.name}). Complete it or discard it before starting a new one.`,
+      };
+    }
 
     const design = await tx.design.create({
       data: {
@@ -116,5 +125,10 @@ export async function POST(req: Request) {
     return { designId: design.id, scheduledDays: generated.entries.length };
   });
 
-  return NextResponse.json({ ok: true, ...result });
+  if ((result as { ok?: boolean }).ok === false) {
+    const r = result as { ok: false; status: number; error: string };
+    return NextResponse.json({ ok: false, error: r.error }, { status: r.status });
+  }
+
+  return NextResponse.json({ ok: true, ...(result as { designId: string; scheduledDays: number }) });
 }

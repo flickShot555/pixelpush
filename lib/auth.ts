@@ -123,4 +123,22 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  events: {
+    async signIn({ user, account }) {
+      if (account?.provider !== "github") return;
+      const image = (user as { image?: string | null }).image ?? null;
+      if (!image) return;
+
+      // Keep User.image and User.avatarUrl aligned with the GitHub avatar.
+      // This ensures the avatar displays consistently even after logging in via credentials.
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          image,
+          avatarUrl: image,
+        },
+        select: { id: true },
+      });
+    },
+  },
 };
