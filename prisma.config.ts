@@ -13,6 +13,8 @@ export default defineConfig({
     // In some CI/preview environments DATABASE_URL isn't provided until runtime;
     // use a harmless local fallback so `prisma generate` can still succeed.
     url:
+      // Prefer a direct (non-pooled) connection for migrations when available.
+      process.env["DIRECT_URL"] ??
       process.env["DATABASE_URL"] ??
       "postgresql://postgres:postgres@localhost:5432/postgres?schema=public",
   },
