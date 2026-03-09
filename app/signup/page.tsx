@@ -269,11 +269,13 @@ export default function SignupPage() {
                 });
 
                 const json = (await res.json().catch(() => null)) as
-                  | { ok?: boolean; error?: string }
+                  | { ok?: boolean; error?: string; requestId?: string }
                   | null;
 
                 if (!res.ok || !json?.ok) {
-                  setError(json?.error ?? "Unable to create account");
+                  const base = json?.error ?? "Unable to create account";
+                  const withRef = json?.requestId ? `${base} (ref: ${json.requestId})` : base;
+                  setError(withRef);
                   setBusy(false);
                   return;
                 }

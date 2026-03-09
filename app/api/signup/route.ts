@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -55,13 +56,51 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, userId: user.id });
   } catch (e) {
+    const requestId = crypto.randomUUID();
     const msg = e instanceof Error ? e.message : "Unable to create account";
+
+    // Log full error server-side for Vercel function logs.
+    console.error("/api/signup failed", { requestId, error: e });
 
     if (msg.includes("DATABASE_URL is not set")) {
       return NextResponse.json(
-        { ok: false, error: "Server is not configured (missing database)" },
+        {
+          ok: false,
+          error: "Server is not configured (missing database)",
+          requestId,
+        },
         { status: 500 }
       );
+    }
+
+    if (e instanceof Prisma.PrismaClientInitializationError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Database connection failed",
+          requestId,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      // P2021: table does not exist (common if migrations weren't applied)
+      if (e.code === "P2021") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Database schema is not initialized",
+            requestId,
+          },
+          { status: 500 }
+        );
+      }
+
+      // Unique constraint violation
+      if (e.code === "P2002") {
+        return badRequest("That email or username is already in use");
+      }
     }
 
     // Best-effort unique constraint messaging.
@@ -69,6 +108,9 @@ export async function POST(req: Request) {
       return badRequest("That email or username is already in use");
     }
 
-    return NextResponse.json({ ok: false, error: "Unable to create account" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Unable to create account", requestId },
+      { status: 500 }
+    );
   }
 }
