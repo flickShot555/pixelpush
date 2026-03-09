@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
@@ -36,15 +37,19 @@ function hexToRgba(hex: string, alpha: number): string {
 export default function SettingsPage() {
   const { mode, setMode, theme } = useTheme();
   const router = useRouter();
+  const { data: session } = useSession();
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
 
   const dangerBorder = useMemo(() => hexToRgba(theme.danger, 0.2), [theme.danger]);
 
+  const plan = session?.user?.plan ?? "FREE";
+  const planLabel = plan === "PRO" ? "Pro" : "Free";
+
   return (
-    <div className="p-8">
-      <div className="w-full" style={{ maxWidth: 640 }}>
+    <div className="p-8 w-full min-h-full">
+      <div className="w-full">
         <h1
           style={{
             color: theme.text,
@@ -280,10 +285,10 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div style={{ color: theme.muted, fontSize: 14 }}>
-                Current Plan: <span style={{ color: theme.text, fontWeight: 700 }}>Free</span>
+                Current Plan: <span style={{ color: theme.text, fontWeight: 700 }}>{planLabel}</span>
               </div>
               <div style={{ color: theme.muted, fontSize: 12, marginTop: 2 }}>
-                Upgrade to unlock AI suggestions and more
+                {plan === "PRO" ? "Thanks for supporting PixelPush." : "Upgrade to unlock AI suggestions and more"}
               </div>
             </div>
 

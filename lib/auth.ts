@@ -116,11 +116,27 @@ export const authOptions: NextAuthOptions = {
         if (u.githubId) token.githubId = u.githubId;
       }
 
+      // On sign-in, pull the latest user metadata from the database.
+      // This is used for feature gating (plan) and to keep the session consistent.
+      if (user?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { username: true, githubId: true, plan: true },
+        });
+
+        if (dbUser?.username) token.username = dbUser.username;
+        if (dbUser?.githubId) token.githubId = dbUser.githubId;
+        if (dbUser?.plan) token.plan = dbUser.plan;
+      }
+
       if (profile && typeof profile === "object") {
         const p = profile as { id?: number | string; login?: string };
         if (p.id !== undefined) token.githubId = String(p.id);
         if (p.login) token.username = p.login;
       }
+
+      // Default any missing plan to FREE.
+      if (!token.plan) token.plan = "FREE";
 
       return token;
     },
@@ -129,12 +145,17 @@ export const authOptions: NextAuthOptions = {
         session.accessToken = token.accessToken;
       }
       if (session.user) {
+        if (token.sub) {
+          session.user.id = token.sub;
+        }
         if (token.username) {
           session.user.username = token.username;
         }
         if (token.githubId) {
           session.user.githubId = token.githubId;
         }
+
+        session.user.plan = token.plan ?? "FREE";
       }
       return session;
     },

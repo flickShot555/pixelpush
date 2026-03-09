@@ -57,6 +57,9 @@ export function DesignClient() {
   const { data: session } = useSession();
   const { theme } = useTheme();
 
+  const plan = (session?.user as unknown as { plan?: "FREE" | "PRO" } | undefined)?.plan ?? "FREE";
+  const isPro = plan === "PRO";
+
   const [activeTheme, setActiveTheme] = useState<ThemeName>("Pets");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -165,6 +168,10 @@ export function DesignClient() {
         return;
       }
 
+      if (!isPro) {
+        return;
+      }
+
       if (suggestionsByTheme[activeTheme]?.length) {
         return;
       }
@@ -230,7 +237,7 @@ export function DesignClient() {
     return () => {
       cancelled = true;
     };
-  }, [activeTheme, githubInfo, suggestionsByTheme, username]);
+  }, [activeTheme, githubInfo, suggestionsByTheme, username, isPro]);
 
   const selectedIdx = useMemo(() => {
     const raw = searchParams.get("design");
@@ -399,88 +406,126 @@ export function DesignClient() {
         ) : null}
 
         <section className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {loadingSuggestions
-            ? Array.from({ length: 3 }).map((_, idx) => (
-                <Card key={`skeleton-${idx}`} className="animate-pulse" style={{ padding: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                    <div
-                      style={{
-                        height: 14,
-                        width: "58%",
-                        borderRadius: 999,
-                        background: theme.surface2,
-                      }}
-                    />
-                    <div
-                      style={{
-                        height: 18,
-                        width: 64,
-                        borderRadius: 999,
-                        background: theme.surface2,
-                      }}
-                    />
+          {!isPro ? (
+            <Card style={{ padding: 14 }}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div
+                    style={{
+                      color: theme.text,
+                      fontFamily: "var(--pp-font-head)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    AI Suggestions
                   </div>
-                  <div style={{ marginTop: 10, height: 12, width: "92%", borderRadius: 999, background: theme.surface2 }} />
-                  <div style={{ marginTop: 8, height: 12, width: "76%", borderRadius: 999, background: theme.surface2 }} />
-                  <div style={{ marginTop: 10, height: 10, width: "66%", borderRadius: 999, background: theme.surface2 }} />
-                </Card>
-              ))
-            : suggestions?.length
-              ? suggestions.slice(0, 3).map((s) => (
-                  <Card key={s.name} style={{ padding: 14 }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div
-                        style={{
-                          color: theme.text,
-                          fontFamily: "var(--pp-font-head)",
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {s.name}
-                      </div>
-                      <Badge style={badgeStyleForDifficulty(s.difficulty)}>
-                        {s.difficulty.toUpperCase()}
-                      </Badge>
-                    </div>
+                  <div style={{ marginTop: 6, color: theme.muted, fontSize: 12, fontFamily: "var(--pp-font-body)" }}>
+                    Available in Pro.
+                  </div>
+                </div>
 
-                    <div
-                      style={{
-                        marginTop: 6,
-                        color: theme.muted,
-                        fontSize: 12,
-                        fontFamily: "var(--pp-font-body)",
-                      }}
-                    >
-                      {s.description}
-                    </div>
+                <Badge style={{ background: theme.surface2, color: theme.muted }}>
+                  <span className="inline-flex items-center gap-1">
+                    <Lock size={14} /> PRO
+                  </span>
+                </Badge>
+              </div>
 
-                    <div
-                      style={{
-                        marginTop: 8,
-                        color: theme.accent,
-                        fontSize: 11,
-                        fontStyle: "italic",
-                        fontFamily: "var(--pp-font-body)",
-                      }}
-                    >
-                      {s.whyItFits}
-                    </div>
+              <div className="mt-3">
+                <Btn
+                  variant="secondary"
+                  small
+                  onClick={() => {
+                    router.push("/pricing");
+                  }}
+                >
+                  View Pricing
+                </Btn>
+              </div>
+            </Card>
+          ) : loadingSuggestions ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <Card key={`skeleton-${idx}`} className="animate-pulse" style={{ padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div
+                    style={{
+                      height: 14,
+                      width: "58%",
+                      borderRadius: 999,
+                      background: theme.surface2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 18,
+                      width: 64,
+                      borderRadius: 999,
+                      background: theme.surface2,
+                    }}
+                  />
+                </div>
+                <div style={{ marginTop: 10, height: 12, width: "92%", borderRadius: 999, background: theme.surface2 }} />
+                <div style={{ marginTop: 8, height: 12, width: "76%", borderRadius: 999, background: theme.surface2 }} />
+                <div style={{ marginTop: 10, height: 10, width: "66%", borderRadius: 999, background: theme.surface2 }} />
+              </Card>
+            ))
+          ) : suggestions?.length ? (
+            suggestions.slice(0, 3).map((s) => (
+              <Card key={s.name} style={{ padding: 14 }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    style={{
+                      color: theme.text,
+                      fontFamily: "var(--pp-font-head)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {s.name}
+                  </div>
+                  <Badge style={badgeStyleForDifficulty(s.difficulty)}>
+                    {s.difficulty.toUpperCase()}
+                  </Badge>
+                </div>
 
-                    <div className="mt-3">
-                      <Btn
-                        variant="secondary"
-                        small
-                        onClick={() => {
-                          setNameOverride(s.name);
-                        }}
-                      >
-                        Draw This
-                      </Btn>
-                    </div>
-                  </Card>
-                ))
-              : null}
+                <div
+                  style={{
+                    marginTop: 6,
+                    color: theme.muted,
+                    fontSize: 12,
+                    fontFamily: "var(--pp-font-body)",
+                  }}
+                >
+                  {s.description}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 8,
+                    color: theme.accent,
+                    fontSize: 11,
+                    fontStyle: "italic",
+                    fontFamily: "var(--pp-font-body)",
+                  }}
+                >
+                  {s.whyItFits}
+                </div>
+
+                <div className="mt-3">
+                  <Btn
+                    variant="secondary"
+                    small
+                    onClick={() => {
+                      setNameOverride(s.name);
+                    }}
+                  >
+                    Draw This
+                  </Btn>
+                </div>
+              </Card>
+            ))
+          ) : null}
         </section>
 
         <section className="mb-7 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

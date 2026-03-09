@@ -4,11 +4,13 @@ declare module "next-auth" {
   interface Session {
     accessToken?: string;
     user?: {
+      id?: string;
       name?: string | null;
       email?: string | null;
       image?: string | null;
       username?: string;
       githubId?: string;
+      plan?: "FREE" | "PRO";
     };
   }
 }
@@ -18,5 +20,6 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     username?: string;
     githubId?: string;
+    plan?: "FREE" | "PRO";
   }
 }

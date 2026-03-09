@@ -21,6 +21,13 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (session.user?.plan !== "PRO") {
+    return NextResponse.json(
+      { error: "AI design suggestions are available in Pro." },
+      { status: 403 }
+    );
+  }
+
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json({ error: "GROQ_API_KEY is not configured" }, { status: 500 });
   }

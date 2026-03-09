@@ -1,0 +1,9 @@
+DO $$
+BEGIN
+  CREATE TYPE "UserPlan" AS ENUM ('FREE', 'PRO');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "User"
+ADD COLUMN IF NOT EXISTS "plan" "UserPlan" NOT NULL DEFAULT 'FREE';
