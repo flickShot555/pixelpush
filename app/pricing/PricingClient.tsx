@@ -17,6 +17,7 @@ type PlanCardProps = {
   description: string;
   ctaLabel: string;
   onCtaClick: () => void;
+  ctaDisabled?: boolean;
   highlighted?: boolean;
   special?: boolean;
   t: Theme;
@@ -50,6 +51,7 @@ function PlanCard({
   description,
   ctaLabel,
   onCtaClick,
+  ctaDisabled = false,
   highlighted = false,
   special = false,
   t,
@@ -171,12 +173,14 @@ function PlanCard({
         onMouseLeave={() => setCtaHovered(false)}
       >
         <Btn
+          disabled={ctaDisabled}
           onClick={() => {
+            if (ctaDisabled) return;
             onCtaClick();
           }}
           style={{
             ...ctaBaseStyle,
-            opacity: ctaHovered ? 0.9 : 1,
+            opacity: ctaDisabled ? 0.6 : ctaHovered ? 0.9 : 1,
             transition: "all 0.2s",
           }}
           className="w-full"
@@ -273,7 +277,8 @@ export function PricingClient() {
             price="$7"
             period="per month"
             description="For developers who are serious about their graph art"
-            ctaLabel="Upgrade to Pro"
+            ctaLabel="Coming Soon"
+            ctaDisabled
             highlighted
             onCtaClick={() => {
               // TODO: wire to Stripe checkout in Milestone monetization
@@ -287,7 +292,8 @@ export function PricingClient() {
             price="$35"
             period="one-time"
             description="Pay once, keep Pro forever. Limited spots."
-            ctaLabel="Get Lifetime Deal"
+            ctaLabel="Coming Soon"
+            ctaDisabled
             special
             onCtaClick={() => {
               // TODO: wire to Stripe checkout in Milestone monetization

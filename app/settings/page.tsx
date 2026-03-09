@@ -290,11 +290,10 @@ export default function SettingsPage() {
             <Btn
               small
               onClick={() => {
-                // TODO: wire to Stripe Customer Portal for existing subscribers
                 router.push("/pricing");
               }}
             >
-              Upgrade to Pro
+              View Pricing
             </Btn>
           </div>
         </Card>

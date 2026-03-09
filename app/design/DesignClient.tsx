@@ -10,14 +10,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { PixelGrid } from "@/components/ui/PixelGrid";
 import {
+  calendarToGrid,
   genMidnightCat,
   genMountainRange,
   genOceanWave,
   genPixelHeart,
   genSpaceRocket,
   type GraphGrid,
+  type GitHubContributionCalendar,
 } from "@/lib/graph-utils";
 import { useTheme } from "@/lib/theme";
+import { PixelDiffGrid } from "@/components/ui/PixelDiffGrid";
 
 type ThemeName = "Pets" | "Scenery" | "Abstract" | "Space" | "Aviation" | "Cars";
 
@@ -36,39 +39,14 @@ type AiDesignSuggestion = {
   difficulty: Difficulty;
 };
 
-function useElementWidth<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect?.width ?? 0;
-      setWidth(w);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return { ref, width };
-}
-
 function ScaledPixelGrid({ data }: { data: GraphGrid }) {
   const { theme } = useTheme();
   const cellSize = 8;
   const gap = 1.5;
 
-  const { ref, width } = useElementWidth<HTMLDivElement>();
-  const naturalWidth = 52 * cellSize + 51 * gap;
-  const scale = width > 0 ? Math.min(1, width / naturalWidth) : 1;
-
   return (
-    <div ref={ref} style={{ width: "100%", overflow: "hidden" }}>
-      <div style={{ transform: `scale(${scale})`, transformOrigin: "left top" }}>
-        <PixelGrid data={data} cellSize={cellSize} gap={gap} t={theme} />
-      </div>
+    <div style={{ width: "100%" }}>
+      <PixelGrid data={data} cellSize={cellSize} gap={gap} t={theme} fit />
     </div>
   );
 }
@@ -92,6 +70,44 @@ export function DesignClient() {
   );
   const [githubInfo, setGithubInfo] = useState<null | { languages: string[]; repos: string[] }>(null);
   const [nameOverride, setNameOverride] = useState<string | null>(null);
+
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlayBusy, setOverlayBusy] = useState(false);
+  const [overlayError, setOverlayError] = useState<string | null>(null);
+  const [overlayCurrent, setOverlayCurrent] = useState<GraphGrid | null>(null);
+
+  async function refreshOverlayCurrent() {
+    setOverlayError(null);
+    setOverlayBusy(true);
+    try {
+      const res = await fetch("/api/github/contributions", { method: "GET" });
+      const json = (await res.json().catch(() => null)) as
+        | { calendar?: unknown; error?: string }
+        | null;
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Unable to load GitHub contributions");
+      }
+
+      if (!json?.calendar || typeof json.calendar !== "object") {
+        throw new Error("Invalid GitHub contributions response");
+      }
+
+      const grid = calendarToGrid(json.calendar as GitHubContributionCalendar);
+      setOverlayCurrent(grid);
+      setOverlayBusy(false);
+    } catch (e) {
+      setOverlayError(e instanceof Error ? e.message : "Unable to load overlay data");
+      setOverlayBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!overlayOpen) return;
+    if (overlayBusy) return;
+    if (overlayCurrent) return;
+    void refreshOverlayCurrent();
+  }, [overlayBusy, overlayCurrent, overlayOpen]);
 
   const themes: ThemeName[] = ["Pets", "Scenery", "Abstract", "Space", "Aviation", "Cars"];
 
@@ -551,11 +567,9 @@ export function DesignClient() {
               <Btn
                 variant="secondary"
                 style={{ width: "100%" }}
-                onClick={() => {
-                  console.log("Unlock Pro clicked");
-                }}
+                disabled
               >
-                Unlock Pro
+                Coming Soon
               </Btn>
             </div>
           </Card>
@@ -651,7 +665,7 @@ export function DesignClient() {
                   <Btn
                     variant="secondary"
                     onClick={() => {
-                      console.log("Preview Overlay");
+                      setOverlayOpen((v) => !v);
                     }}
                   >
                     Preview Overlay
@@ -695,6 +709,59 @@ export function DesignClient() {
                   </Btn>
                 </div>
               </div>
+
+              {overlayOpen ? (
+                <div style={{ marginTop: 18 }}>
+                  <div
+                    className="flex items-center justify-between gap-3"
+                    style={{ marginBottom: 10 }}
+                  >
+                    <div
+                      style={{
+                        color: theme.muted,
+                        textTransform: "uppercase",
+                        fontSize: 11,
+                        letterSpacing: "0.06em",
+                        fontFamily: "var(--pp-font-body)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Overlay Comparison
+                    </div>
+
+                    <Btn
+                      small
+                      variant="secondary"
+                      disabled={overlayBusy}
+                      onClick={async () => {
+                        await refreshOverlayCurrent();
+                      }}
+                    >
+                      {overlayBusy ? "Loading…" : "Refresh"}
+                    </Btn>
+                  </div>
+
+                  {overlayError ? (
+                    <div style={{ marginBottom: 10, color: theme.danger, fontSize: 13, fontWeight: 700 }}>
+                      {overlayError}
+                    </div>
+                  ) : null}
+
+                  <div style={{ overflowX: "auto", overflowY: "hidden", maxWidth: "100%" }}>
+                    {overlayCurrent ? (
+                      <PixelDiffGrid target={selected.grid} current={overlayCurrent} cellSize={10} gap={2} t={theme} fit />
+                    ) : (
+                      <div style={{ color: theme.muted, fontSize: 13 }}>
+                        Click Refresh to load your current GitHub graph and preview differences.
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 10, color: theme.muted, fontSize: 12 }}>
+                    Warn highlights areas below target; danger highlights areas above target.
+                  </div>
+                </div>
+              ) : null}
             </Card>
           )}
         </div>

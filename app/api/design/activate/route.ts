@@ -9,6 +9,10 @@ import type { GraphGrid } from "@/lib/graph-utils";
 
 export const runtime = "nodejs";
 
+function utcMidnight(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
 type ActivateBody = {
   name?: string;
   theme?: string;
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
   const calendar = await fetchContributionCalendar({ accessToken });
   const thresholds = computeContributionThresholds(calendar);
 
-  const startDate = new Date();
+  const startDate = utcMidnight(new Date());
   const seed = Date.now() ^ user.id.length;
   const generated = generateSchedule({ grid, startDate, thresholds, seed });
 

@@ -40,6 +40,8 @@ model User {
   targetDesign  TargetDesign?
 
   designs       Design[]
+
+  badges       Badge[]
 }
 
 model Design {
@@ -58,7 +60,25 @@ model Design {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   schedule     ScheduleEntry[]
 
+  badge        Badge?
+
   @@index([userId])
+}
+
+model Badge {
+  id        String   @id @default(cuid())
+  userId    String
+  designId  String   @unique
+  name      String
+  pixelData Json
+  earnedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([earnedAt])
 }
 
 model ScheduleEntry {

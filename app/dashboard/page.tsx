@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Check, Circle, Flame, Target, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -15,38 +15,14 @@ import {
 import { useTheme } from "@/lib/theme";
 import { PixelGrid } from "@/components/ui/PixelGrid";
 
-function useElementWidth<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect?.width ?? 0;
-      setWidth(w);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return { ref, width };
-}
-
 function ScaledGrid({ grid }: { grid: GraphGrid }) {
   const { theme } = useTheme();
-  const { ref, width } = useElementWidth<HTMLDivElement>();
   const cell = 10;
   const gap = 2;
-  const naturalWidth = 52 * cell + 51 * gap;
-  const scale = width > 0 ? Math.min(1, width / naturalWidth) : 1;
 
   return (
-    <div ref={ref} style={{ width: "100%", overflow: "hidden" }}>
-      <div style={{ transform: `scale(${scale})`, transformOrigin: "left top" }}>
-        <PixelGrid data={grid} cellSize={cell} gap={gap} t={theme} />
-      </div>
+    <div style={{ width: "100%" }}>
+      <PixelGrid data={grid} cellSize={cell} gap={gap} t={theme} fit />
     </div>
   );
 }

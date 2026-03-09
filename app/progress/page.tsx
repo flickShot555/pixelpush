@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { PixelGrid } from "@/components/ui/PixelGrid";
+import { PixelDiffGrid } from "@/components/ui/PixelDiffGrid";
 import { useTheme } from "@/lib/theme";
 
 type GraphGrid = number[][];
@@ -65,14 +66,24 @@ function buildPublicShareUrl(options: { origin: string; username: string; stage:
 }
 
 async function webShare(options: { title: string; text: string; url: string }) {
-  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-    await navigator.share({ title: options.title, text: options.text, url: options.url });
-    return;
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      await navigator.share({ title: options.title, text: options.text, url: options.url });
+      return;
+    }
+  } catch {
+    // fall through to clipboard / new tab
   }
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(options.url);
-    return;
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(options.url);
+      return;
+    }
+  } catch {
+    // fall through to new tab
   }
+
   window.open(options.url, "_blank", "noopener,noreferrer");
 }
 
@@ -349,6 +360,7 @@ export default function ProgressPage() {
 
           <div className="flex items-center" style={{ gap: 10, flexShrink: 0 }}>
             <Btn
+              disabled={!sharePayload}
               onClick={async () => {
                 if (!sharePayload) return;
                 await webShare({ title: sharePayload.title, text: sharePayload.text, url: sharePayload.url });
@@ -357,6 +369,7 @@ export default function ProgressPage() {
               Share 🚀
             </Btn>
             <Btn
+              disabled={!sharePayload}
               onClick={() => {
                 if (!sharePayload) return;
                 shareOnX({ text: sharePayload.text, url: sharePayload.url });
@@ -365,6 +378,7 @@ export default function ProgressPage() {
               X
             </Btn>
             <Btn
+              disabled={!sharePayload}
               onClick={() => {
                 if (!sharePayload) return;
                 shareOnLinkedIn({ url: sharePayload.url });
@@ -433,6 +447,29 @@ export default function ProgressPage() {
                 {current ? <PixelGrid data={current} cellSize={12} gap={2} t={theme} fit /> : null}
               </div>
             </div>
+          </div>
+        </Card>
+
+        <Card className="w-full" style={{ padding: "28px 32px", marginBottom: 24, overflow: "hidden" }}>
+          <div
+            style={{
+              color: theme.muted,
+              textTransform: "uppercase",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 12,
+            }}
+          >
+            OVERLAY COMPARISON
+          </div>
+          <div style={{ overflowX: "auto", overflowY: "hidden", maxWidth: "100%" }}>
+            {target && current ? (
+              <PixelDiffGrid target={target} current={current} cellSize={12} gap={2} t={theme} fit />
+            ) : null}
+          </div>
+          <div style={{ marginTop: 10, color: theme.muted, fontSize: 12 }}>
+            Highlights where your current graph is behind (warn) or ahead (danger) of the target.
           </div>
         </Card>
 
@@ -548,6 +585,7 @@ export default function ProgressPage() {
 
             <Btn
               className="w-full"
+              disabled={!sharePayload}
               onClick={async () => {
                 if (!sharePayload) return;
                 await webShare({ title: sharePayload.title, text: sharePayload.text, url: sharePayload.url });
