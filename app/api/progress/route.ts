@@ -241,6 +241,16 @@ export async function GET() {
       status: e.status,
     }));
 
+  const todayKey = dateKeyUtc(todayStart);
+  const todayEntry = synced.find((e) => dateKeyUtc(e.date) === todayKey && e.status !== "skipped");
+  const today = todayEntry
+    ? {
+        targetCount: todayEntry.targetCount,
+        actualCount: todayEntry.actualCount ?? 0,
+        status: todayEntry.status,
+      }
+    : null;
+
   return NextResponse.json({
     ok: true,
     username: user.username,
@@ -262,6 +272,7 @@ export async function GET() {
       daysElapsed,
       daysMissed,
     },
+    today,
     upcoming,
   });
 }

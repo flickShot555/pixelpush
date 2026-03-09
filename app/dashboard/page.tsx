@@ -2,26 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Check, Circle, Flame, Target, Zap } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Tag } from "@/components/ui/Tag";
 import { StatCard } from "@/components/ui/StatCard";
 import {
-  calendarToFixedWindowGrid,
   emptyGrid,
-  type GitHubContributionCalendar,
   type GraphGrid,
 } from "@/lib/graph-utils";
 import { useTheme } from "@/lib/theme";
 import { PixelGrid } from "@/components/ui/PixelGrid";
-
-function startOfUtcWeekSunday(date: Date): Date {
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const dow = d.getUTCDay(); // 0=Sun
-  d.setUTCDate(d.getUTCDate() - dow);
-  return d;
-}
 
 function useElementWidth<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
@@ -61,75 +53,167 @@ function ScaledGrid({ grid }: { grid: GraphGrid }) {
 
 export default function DashboardPage() {
   const { theme } = useTheme();
-  const [progressPct, setProgressPct] = useState(0);
+  const { data: session } = useSession();
+
+  const [progressPctAnim, setProgressPctAnim] = useState(0);
 
   const [target, setTarget] = useState<GraphGrid>(() => emptyGrid());
   const [current, setCurrent] = useState<GraphGrid>(() => emptyGrid());
   const [graphError, setGraphError] = useState<string | null>(null);
-  const [targetName, setTargetName] = useState<string>("Midnight Cat");
-  const [targetStartDate, setTargetStartDate] = useState<string | null>(null);
+
+  const [username, setUsername] = useState<string>("");
+  const [activeDesignName, setActiveDesignName] = useState<string>("");
+  const [completionPct, setCompletionPct] = useState<number>(0);
+  const [streakDays, setStreakDays] = useState<number>(0);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  const [todayTarget, setTodayTarget] = useState<number | null>(null);
+  const [todayActual, setTodayActual] = useState<number | null>(null);
+  const [upcoming, setUpcoming] = useState<Array<{ when: string; commits: string }>>([]);
+
+  const hasGithub = Boolean((session?.user as unknown as { githubId?: string })?.githubId);
+
+  const welcomeName = useMemo(() => {
+    if (username) return username;
+    const fallback = (session?.user as { username?: string } | undefined)?.username;
+    return fallback ?? "";
+  }, [session?.user, username]);
+
+  const tagText = useMemo(() => {
+    if (!activeDesignName) return "No active design";
+    return `Active: ${activeDesignName} · ${completionPct}% complete`;
+  }, [activeDesignName, completionPct]);
+
+  function relativeWhenLabel(dateIso: string, todayIso: string): string {
+    const d = new Date(dateIso);
+    const t = new Date(todayIso);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const delta = Math.round((d.getTime() - t.getTime()) / dayMs);
+    if (delta === 0) return "Today";
+    if (delta === 1) return "Tomorrow";
+    return `In ${delta} days`;
+  }
 
   useEffect(() => {
     let cancelled = false;
 
+    function utcMidnight(date: Date): Date {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    }
+
+    const pollMs = 30_000;
+
     async function load() {
       try {
-        const targetRes = await fetch("/api/target", { cache: "no-store" });
+        const res = await fetch("/api/progress", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              error?: string;
+              username?: string;
+              design?: { name?: string; targetEndAt?: string | null } | null;
+              targetGrid?: GraphGrid | null;
+              currentGrid?: GraphGrid | null;
+              stats?: {
+                completionPct?: number;
+                streakDays?: number;
+              } | null;
+              today?: { targetCount: number; actualCount: number } | null;
+              upcoming?: Array<{ date: string; targetCount: number }>;
+            }
+          | null;
 
-        if (!targetRes.ok) {
-          const msg = await targetRes.text().catch(() => "");
-          throw new Error(msg || `Target fetch failed (${targetRes.status})`);
+        if (!res.ok || !json?.ok) {
+          const msg = json?.error ?? `Progress fetch failed (${res.status})`;
+          throw new Error(msg);
         }
-        const targetJson = (await targetRes.json()) as {
-          target?: { name?: string; grid?: GraphGrid; startDate?: string };
-        };
 
-        const startDateISO = targetJson.target?.startDate;
-        if (!cancelled) {
-          setTargetName(targetJson.target?.name ?? "Midnight Cat");
-          setTarget(targetJson.target?.grid ?? emptyGrid());
-          setTargetStartDate(startDateISO ?? null);
-        }
+        const now = new Date();
+        const today = utcMidnight(now);
+        const todayIso = today.toISOString();
 
-        const safeStart = startDateISO ?? new Date().toISOString();
-        const from = startOfUtcWeekSunday(new Date(safeStart)).toISOString();
-        const to = new Date().toISOString();
+        const designName = json.design?.name ?? "";
+        const pct = Math.max(0, Math.min(100, Math.round(json.stats?.completionPct ?? 0)));
+        const streak = Math.max(0, Math.round(json.stats?.streakDays ?? 0));
 
-        const currentRes = await fetch(`/api/github/contributions?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-          { cache: "no-store" }
-        );
+        const endAtRaw = json.design?.targetEndAt ?? null;
+        const remaining = endAtRaw
+          ? Math.max(0, Math.ceil((new Date(endAtRaw).getTime() - today.getTime()) / (24 * 60 * 60 * 1000)))
+          : null;
 
-        if (!currentRes.ok) {
-          const msg = await currentRes.text().catch(() => "");
-          throw new Error(msg || `GitHub fetch failed (${currentRes.status})`);
-        }
-        const currentJson = (await currentRes.json()) as { calendar?: GitHubContributionCalendar };
-        const calendar = currentJson.calendar;
-        if (!calendar) throw new Error("Missing calendar from GitHub API");
+        const todays = json.today ?? null;
+        const tTarget = todays ? Math.max(0, Math.round(todays.targetCount)) : null;
+        const tActual = todays ? Math.max(0, Math.round(todays.actualCount)) : null;
 
-        if (!cancelled) setCurrent(calendarToFixedWindowGrid(calendar, { startDateISO: safeStart }));
+        const nextRows = (json.upcoming ?? [])
+          .filter((x) => typeof x?.date === "string")
+          .slice(0, 7)
+          .map((x) => ({
+            when: relativeWhenLabel(x.date, todayIso),
+            commits: `${x.targetCount} commit${x.targetCount === 1 ? "" : "s"}`,
+          }))
+          .filter((x) => x.when !== "Today");
 
-        if (!cancelled) setGraphError(null);
+        if (cancelled) return;
+
+        setUsername(json.username ?? "");
+        setActiveDesignName(designName);
+        setCompletionPct(pct);
+        setStreakDays(streak);
+        setDaysRemaining(remaining);
+        setTodayTarget(tTarget);
+        setTodayActual(tActual);
+        setUpcoming(nextRows);
+
+        setTarget(json.targetGrid ?? emptyGrid());
+        setCurrent(json.currentGrid ?? emptyGrid());
+
+        setGraphError(null);
+
+        // Animate progress bar towards the latest value.
+        setProgressPctAnim(0);
+        window.setTimeout(() => {
+          if (!cancelled) setProgressPctAnim(pct);
+        }, 60);
       } catch (e) {
         if (cancelled) return;
-        setGraphError(e instanceof Error ? e.message : "Unable to load graphs");
+
+        setGraphError(e instanceof Error ? e.message : "Unable to load dashboard");
         setTarget(emptyGrid());
         setCurrent(emptyGrid());
-        setTargetName("Midnight Cat");
-        setTargetStartDate(null);
+        setUsername("");
+        setActiveDesignName("");
+        setCompletionPct(0);
+        setStreakDays(0);
+        setDaysRemaining(null);
+        setTodayTarget(null);
+        setTodayActual(null);
+        setUpcoming([]);
+        setProgressPctAnim(0);
       }
     }
 
     load();
+    const timer = window.setInterval(load, pollMs);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => setProgressPct(34), 100);
-    return () => window.clearTimeout(t);
-  }, []);
+  const dueTodayText = useMemo(() => {
+    if (todayTarget === null) return "";
+    const remaining = todayActual !== null ? Math.max(0, todayTarget - todayActual) : todayTarget;
+    if (remaining <= 0) return "You’re done for today.";
+    return remaining === 1 ? "You have 1 commit due today." : `You have ${remaining} commits due today.`;
+  }, [todayActual, todayTarget]);
+
+  const badges = useMemo(() => {
+    const items: string[] = [];
+    if (streakDays > 0) items.push(`🔥 ${streakDays} day streak`);
+    if (activeDesignName) items.push("🎨 Active design");
+    if (!hasGithub) items.push("⚠️ GitHub not connected");
+    return items;
+  }, [activeDesignName, hasGithub, streakDays]);
 
   return (
     <main
@@ -173,23 +257,51 @@ export default function DashboardPage() {
                 fontFamily: "var(--pp-font-body)",
               }}
             >
-              Welcome back, flickShot555. You have commits due today.
+              {welcomeName ? `Welcome back, ${welcomeName}.` : "Welcome back."}
+              {dueTodayText ? ` ${dueTodayText}` : ""}
             </p>
 
             <div className="mt-2 flex flex-wrap gap-2">
-              <Badge>🔥 12 day streak</Badge>
-              <Badge>🎨 Active design</Badge>
+              {badges.length ? badges.map((b) => <Badge key={b}>{b}</Badge>) : <Badge>Loading…</Badge>}
             </div>
           </div>
           <div style={{ paddingTop: 2 }}>
-            <Tag>Active: {targetName} · 34% complete</Tag>
+            <Tag>{tagText}</Tag>
           </div>
         </header>
 
         <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <StatCard label="Current Streak" icon={<Flame size={22} />} value="12 days" subtitle="Best: 18 days" />
-          <StatCard label="Design Progress" icon={<Target size={22} />} value="34%" subtitle="68 days remaining" />
-          <StatCard label="Today's Target" icon={<Zap size={22} />} value="1/3" subtitle="2 commits needed" />
+          <StatCard
+            label="Current Streak"
+            icon={<Flame size={22} />}
+            value={streakDays ? `${streakDays} day${streakDays === 1 ? "" : "s"}` : "—"}
+            subtitle={activeDesignName ? "Based on scheduled days" : "No active design"}
+          />
+          <StatCard
+            label="Design Progress"
+            icon={<Target size={22} />}
+            value={activeDesignName ? `${completionPct}%` : "—"}
+            subtitle={
+              activeDesignName
+                ? daysRemaining !== null
+                  ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining`
+                  : "On track"
+                : "Start a design to track progress"
+            }
+          />
+          <StatCard
+            label="Today's Target"
+            icon={<Zap size={22} />}
+            value={todayTarget !== null && todayActual !== null ? `${todayActual}/${todayTarget}` : "—"}
+            subtitle={
+              todayTarget !== null && todayActual !== null
+                ? (() => {
+                    const rem = Math.max(0, todayTarget - todayActual);
+                    return rem === 1 ? "1 commit needed" : `${rem} commits needed`;
+                  })()
+                : "No task due today"
+            }
+          />
         </section>
 
         <section className="mt-4">
@@ -286,7 +398,7 @@ export default function DashboardPage() {
             <div className="mt-6">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 12, color: theme.muted }}>Overall completion</div>
-                <div style={{ fontSize: 12, color: theme.accent, fontWeight: 700 }}>34%</div>
+                <div style={{ fontSize: 12, color: theme.accent, fontWeight: 700 }}>{completionPct}%</div>
               </div>
               <div
                 style={{
@@ -300,7 +412,7 @@ export default function DashboardPage() {
                 <div
                   style={{
                     height: "100%",
-                    width: `${progressPct}%`,
+                    width: `${progressPctAnim}%`,
                     background: theme.accent,
                     borderRadius: 99,
                     transition: "width 1000ms ease",
@@ -344,7 +456,9 @@ export default function DashboardPage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              3 commits
+              {todayTarget !== null
+                ? `${todayTarget} commit${todayTarget === 1 ? "" : "s"}`
+                : "—"}
             </div>
             <div style={{ marginTop: 6, color: theme.muted, fontSize: 13 }}>
               Due by end of day to stay on schedule
@@ -364,7 +478,11 @@ export default function DashboardPage() {
                   fontWeight: 800,
                 }}
               >
-                <Check aria-hidden size={18} color={theme.onAccent} />
+                {todayTarget !== null && todayActual !== null && todayActual >= todayTarget ? (
+                  <Check aria-hidden size={18} color={theme.onAccent} />
+                ) : (
+                  <Circle aria-hidden size={18} color={theme.onAccent} />
+                )}
               </div>
               <div
                 aria-hidden
@@ -418,12 +536,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4" style={{ borderTop: `1px solid ${theme.border}` }}>
-              {[
-                { when: "Tomorrow", commits: "2 commits" },
-                { when: "In 2 days", commits: "4 commits" },
-                { when: "In 3 days", commits: "1 commit" },
-                { when: "In 4 days", commits: "3 commits" },
-              ].map((row) => (
+              {(upcoming.length ? upcoming.slice(0, 4) : [{ when: "—", commits: "—" }]).map((row) => (
                 <div
                   key={row.when}
                   style={{
