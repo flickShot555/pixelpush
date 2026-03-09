@@ -6,6 +6,22 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 
+// Vercel deploys provide a stable host per deployment via VERCEL_URL.
+// If NEXTAUTH_URL is missing (or mistakenly set to localhost), NextAuth may generate
+// incorrect OAuth callback URLs in production/preview.
+const vercelUrl = (process.env.VERCEL_URL ?? "").trim();
+const nextAuthUrl = (process.env.NEXTAUTH_URL ?? "").trim();
+const isVercel = (process.env.VERCEL ?? "").trim().length > 0;
+
+if (vercelUrl) {
+  const derived = `https://${vercelUrl}`;
+  if (!nextAuthUrl) {
+    process.env.NEXTAUTH_URL = derived;
+  } else if (isVercel && nextAuthUrl.includes("localhost")) {
+    process.env.NEXTAUTH_URL = derived;
+  }
+}
+
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
 export const authOptions: NextAuthOptions = {
