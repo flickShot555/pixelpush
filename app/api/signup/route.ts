@@ -99,6 +99,30 @@ export async function POST(req: Request) {
 
       // Unique constraint violation
       if (e.code === "P2002") {
+        try {
+          // If the user already exists via GitHub OAuth, they won't have a passwordHash.
+          // In that case, guide them to log in with GitHub and set a password from Profile.
+          const existing = await prisma.user.findFirst({
+            where: {
+              OR: [{ email }, { username }],
+            },
+            select: {
+              email: true,
+              username: true,
+              passwordHash: true,
+              githubId: true,
+            },
+          });
+
+          if (existing?.email === email && !existing.passwordHash && existing.githubId) {
+            return badRequest(
+              "That email is already registered via GitHub. Log in with GitHub, then set a password from Profile."
+            );
+          }
+        } catch {
+          // Fall through to generic message.
+        }
+
         return badRequest("That email or username is already in use");
       }
     }

@@ -65,6 +65,23 @@ export function LoginClient({ initialIdentifier }: { initialIdentifier: string }
         </div>
 
         <Card style={{ padding: 20 }}>
+          <Btn
+            className="w-full"
+            style={{ width: "100%", marginBottom: 10 }}
+            variant="secondary"
+            disabled={busy}
+            onClick={() => {
+              setError(null);
+              void signIn("github", { callbackUrl: "/onboarding" });
+            }}
+          >
+            Continue with GitHub
+          </Btn>
+
+          <div style={{ marginBottom: 12, color: theme.faint, fontSize: 12, textAlign: "center" }}>
+            Or log in with your email and password
+          </div>
+
           {identifier ? (
             <div
               style={{
