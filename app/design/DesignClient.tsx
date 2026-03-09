@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Lock } from "lucide-react";
 
 import { Btn } from "@/components/ui/Btn";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { PixelGrid } from "@/components/ui/PixelGrid";
 import {
@@ -22,7 +24,16 @@ type ThemeName = "Pets" | "Scenery" | "Abstract" | "Space" | "Aviation" | "Cars"
 type DesignCandidate = {
   name: string;
   theme: ThemeName;
-  getData: () => GraphGrid;
+  grid: GraphGrid;
+};
+
+type Difficulty = "easy" | "medium" | "hard";
+
+type AiDesignSuggestion = {
+  name: string;
+  description: string;
+  whyItFits: string;
+  difficulty: Difficulty;
 };
 
 function useElementWidth<T extends HTMLElement>() {
@@ -65,6 +76,7 @@ function ScaledPixelGrid({ data }: { data: GraphGrid }) {
 export function DesignClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const { theme } = useTheme();
 
   const [activeTheme, setActiveTheme] = useState<ThemeName>("Pets");
@@ -73,21 +85,136 @@ export function DesignClient() {
   const [error, setError] = useState<string | null>(null);
   const [activeDesign, setActiveDesign] = useState<null | { id: string; name: string }>(null);
   const [loadingActive, setLoadingActive] = useState(true);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsByTheme, setSuggestionsByTheme] = useState<Partial<Record<ThemeName, AiDesignSuggestion[]>>>(
+    {}
+  );
+  const [githubInfo, setGithubInfo] = useState<null | { languages: string[]; repos: string[] }>(null);
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
 
   const themes: ThemeName[] = ["Pets", "Scenery", "Abstract", "Space", "Aviation", "Cars"];
 
   const candidates: DesignCandidate[] = useMemo(
     () => [
-      { name: "Midnight Cat", theme: "Pets", getData: genMidnightCat },
-      { name: "Mountain Range", theme: "Scenery", getData: genMountainRange },
-      { name: "Pixel Heart", theme: "Abstract", getData: genPixelHeart },
-      { name: "Ocean Wave", theme: "Scenery", getData: genOceanWave },
-      { name: "Space Rocket", theme: "Space", getData: genSpaceRocket },
+      { name: "Midnight Cat", theme: "Pets", grid: genMidnightCat() },
+      { name: "Mountain Range", theme: "Scenery", grid: genMountainRange() },
+      { name: "Pixel Heart", theme: "Abstract", grid: genPixelHeart() },
+      { name: "Ocean Wave", theme: "Scenery", grid: genOceanWave() },
+      { name: "Space Rocket", theme: "Space", grid: genSpaceRocket() },
     ],
     []
   );
 
-  const candidateData = useMemo(() => candidates.map((c) => c.getData()), [candidates]);
+  const candidateData = useMemo(() => candidates.map((c) => c.grid), [candidates]);
+
+  const username = useMemo(() => {
+    const u = (session?.user as unknown as { username?: string } | undefined)?.username;
+    if (typeof u === "string" && u.trim()) return u.trim();
+    const n = session?.user?.name;
+    if (typeof n === "string" && n.trim()) return n.trim();
+    const e = session?.user?.email;
+    if (typeof e === "string" && e.trim()) return e.trim();
+    return "";
+  }, [session?.user]);
+
+  const suggestions = suggestionsByTheme[activeTheme] ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadGithubInfo(): Promise<{ languages: string[]; repos: string[] }> {
+      if (githubInfo) return githubInfo;
+      const res = await fetch("/api/github/repos", { method: "GET" });
+      const json = (await res.json().catch(() => null)) as
+        | { languages?: string[]; repos?: string[]; error?: string }
+        | null;
+
+      if (!res.ok) {
+        const msg = json?.error || "Unable to load GitHub repos";
+        throw new Error(msg);
+      }
+
+      const languages = Array.isArray(json?.languages) ? json!.languages.filter((x) => typeof x === "string") : [];
+      const repos = Array.isArray(json?.repos) ? json!.repos.filter((x) => typeof x === "string") : [];
+
+      return { languages: languages.slice(0, 3), repos: repos.slice(0, 5) };
+    }
+
+    async function loadSuggestions() {
+      setSuggestionError(null);
+
+      if (!username) {
+        setSuggestionError("AI suggestions need an active session.");
+        return;
+      }
+
+      if (suggestionsByTheme[activeTheme]?.length) {
+        return;
+      }
+
+      setLoadingSuggestions(true);
+      try {
+        const info = await loadGithubInfo();
+        const res = await fetch("/api/suggestions/designs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            languages: info.languages,
+            repos: info.repos,
+            theme: activeTheme,
+            days: 68, // TODO: replace with real schedule duration
+          }),
+        });
+
+        const json = (await res.json().catch(() => null)) as unknown;
+        if (cancelled) return;
+
+        if (!res.ok) {
+          const msg = (json as { error?: string } | null)?.error || "Unable to load AI suggestions";
+          throw new Error(msg);
+        }
+
+        if (!Array.isArray(json)) {
+          throw new Error("AI suggestions returned invalid data");
+        }
+
+        const normalized = (json as Array<Partial<AiDesignSuggestion>>)
+          .map((s) => {
+            const name = typeof s.name === "string" ? s.name.trim() : "";
+            const description = typeof s.description === "string" ? s.description.trim() : "";
+            const whyItFits = typeof s.whyItFits === "string" ? s.whyItFits.trim() : "";
+            const difficulty = s.difficulty;
+
+            if (!name || !description || !whyItFits) return null;
+            if (difficulty !== "easy" && difficulty !== "medium" && difficulty !== "hard") return null;
+
+            return { name, description, whyItFits, difficulty } as AiDesignSuggestion;
+          })
+          .filter(Boolean) as AiDesignSuggestion[];
+
+        if (normalized.length === 0) {
+          throw new Error("No AI suggestions available for this theme");
+        }
+
+        if (!githubInfo) setGithubInfo(info);
+        setSuggestionsByTheme((prev) => ({ ...prev, [activeTheme]: normalized.slice(0, 3) }));
+      } catch (e) {
+        if (cancelled) return;
+        setSuggestionError(e instanceof Error ? e.message : "Unable to load AI suggestions");
+      } finally {
+        if (cancelled) return;
+        setLoadingSuggestions(false);
+      }
+    }
+
+    loadSuggestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTheme, githubInfo, suggestionsByTheme, username]);
 
   const selectedIdx = useMemo(() => {
     const raw = searchParams.get("design");
@@ -121,6 +248,28 @@ export function DesignClient() {
   }
 
   const selected = candidates[selectedIdx];
+  const displayName = nameOverride ?? selected.name;
+
+  function badgeStyleForDifficulty(difficulty: Difficulty): CSSProperties {
+    if (difficulty === "easy") {
+      return {
+        background: theme.accentBg,
+        color: theme.accent,
+      };
+    }
+
+    if (difficulty === "medium") {
+      return {
+        background: `color-mix(in srgb, ${theme.warn} 18%, ${theme.surface} 82%)`,
+        color: theme.warn,
+      };
+    }
+
+    return {
+      background: `color-mix(in srgb, ${theme.danger} 16%, ${theme.surface} 84%)`,
+      color: theme.danger,
+    };
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +375,97 @@ export function DesignClient() {
             );
           })}
         </div>
+
+        {suggestionError ? (
+          <div style={{ marginTop: -16, marginBottom: 18, color: theme.muted, fontSize: 12, fontFamily: "var(--pp-font-body)" }}>
+            {suggestionError}
+          </div>
+        ) : null}
+
+        <section className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loadingSuggestions
+            ? Array.from({ length: 3 }).map((_, idx) => (
+                <Card key={`skeleton-${idx}`} className="animate-pulse" style={{ padding: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <div
+                      style={{
+                        height: 14,
+                        width: "58%",
+                        borderRadius: 999,
+                        background: theme.surface2,
+                      }}
+                    />
+                    <div
+                      style={{
+                        height: 18,
+                        width: 64,
+                        borderRadius: 999,
+                        background: theme.surface2,
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 10, height: 12, width: "92%", borderRadius: 999, background: theme.surface2 }} />
+                  <div style={{ marginTop: 8, height: 12, width: "76%", borderRadius: 999, background: theme.surface2 }} />
+                  <div style={{ marginTop: 10, height: 10, width: "66%", borderRadius: 999, background: theme.surface2 }} />
+                </Card>
+              ))
+            : suggestions?.length
+              ? suggestions.slice(0, 3).map((s) => (
+                  <Card key={s.name} style={{ padding: 14 }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div
+                        style={{
+                          color: theme.text,
+                          fontFamily: "var(--pp-font-head)",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {s.name}
+                      </div>
+                      <Badge style={badgeStyleForDifficulty(s.difficulty)}>
+                        {s.difficulty.toUpperCase()}
+                      </Badge>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 6,
+                        color: theme.muted,
+                        fontSize: 12,
+                        fontFamily: "var(--pp-font-body)",
+                      }}
+                    >
+                      {s.description}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 8,
+                        color: theme.accent,
+                        fontSize: 11,
+                        fontStyle: "italic",
+                        fontFamily: "var(--pp-font-body)",
+                      }}
+                    >
+                      {s.whyItFits}
+                    </div>
+
+                    <div className="mt-3">
+                      <Btn
+                        variant="secondary"
+                        small
+                        onClick={() => {
+                          setNameOverride(s.name);
+                        }}
+                      >
+                        Draw This
+                      </Btn>
+                    </div>
+                  </Card>
+                ))
+              : null}
+        </section>
 
         <section className="mb-7 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {candidates.map((c, idx) => {
@@ -334,7 +574,7 @@ export function DesignClient() {
                       fontWeight: 700,
                     }}
                   >
-                    {selected.name}
+                    {displayName}
                   </div>
                   <div
                     style={{
@@ -427,9 +667,9 @@ export function DesignClient() {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
-                            name: selected.name,
+                            name: displayName,
                             theme: selected.theme,
-                            grid: selected.getData(),
+                            grid: selected.grid,
                           }),
                         });
 
