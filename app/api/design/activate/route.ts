@@ -13,6 +13,13 @@ function utcMidnight(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+function startOfUtcWeekSunday(date: Date): Date {
+  const d = utcMidnight(date);
+  const dow = d.getUTCDay(); // 0=Sun
+  d.setUTCDate(d.getUTCDate() - dow);
+  return utcMidnight(d);
+}
+
 type ActivateBody = {
   name?: string;
   theme?: string;
@@ -82,9 +89,12 @@ export async function POST(req: Request) {
   const calendar = await fetchContributionCalendar({ accessToken });
   const thresholds = computeContributionThresholds(calendar);
 
-  const startDate = utcMidnight(new Date());
+  const today = utcMidnight(new Date());
+  const designStartedAt = startOfUtcWeekSunday(today);
   const seed = Date.now() ^ user.id.length;
-  const generated = generateSchedule({ grid, startDate, thresholds, seed });
+  // Schedule is generated from today forward, but the design visually starts
+  // at the week boundary so existing commits earlier this week can be part of the image.
+  const generated = generateSchedule({ grid, startDate: today, thresholds, seed });
 
   const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.design.findFirst({
@@ -108,7 +118,7 @@ export async function POST(req: Request) {
         name,
         pixelData: grid,
         status: "active",
-        startedAt: startDate,
+        startedAt: designStartedAt,
         targetEndAt: generated.targetEndAt ?? undefined,
       },
       select: { id: true },

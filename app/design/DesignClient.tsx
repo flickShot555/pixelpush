@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Lock } from "lucide-react";
@@ -29,6 +29,15 @@ type DesignCandidate = {
   theme: ThemeName;
   grid: GraphGrid;
 };
+
+type CandidateApiResponse =
+  | {
+      ok: true;
+      theme: string;
+      weekStart: string;
+      candidates: Array<{ name: string; theme: string; grid: GraphGrid }>;
+    }
+  | { ok: false; error: string };
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -69,6 +78,11 @@ export function DesignClient() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionsByTheme, setSuggestionsByTheme] = useState<Partial<Record<ThemeName, AiDesignSuggestion[]>>>(
+    {}
+  );
+  const [candidateError, setCandidateError] = useState<string | null>(null);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [candidatesByTheme, setCandidatesByTheme] = useState<Partial<Record<ThemeName, DesignCandidate[]>>>(
     {}
   );
   const [githubInfo, setGithubInfo] = useState<null | { languages: string[]; repos: string[] }>(null);
@@ -114,7 +128,7 @@ export function DesignClient() {
 
   const themes: ThemeName[] = ["Pets", "Scenery", "Abstract", "Space", "Aviation", "Cars"];
 
-  const candidates: DesignCandidate[] = useMemo(
+  const fallbackCandidates: DesignCandidate[] = useMemo(
     () => [
       { name: "Midnight Cat", theme: "Pets", grid: genMidnightCat() },
       { name: "Mountain Range", theme: "Scenery", grid: genMountainRange() },
@@ -124,6 +138,72 @@ export function DesignClient() {
     ],
     []
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCandidates() {
+      setCandidateError(null);
+
+      // Already loaded.
+      if (candidatesByTheme[activeTheme]?.length) return;
+
+      // Avoid spamming the API if the user isn't signed in.
+      if (!session) return;
+
+      setLoadingCandidates(true);
+      try {
+        const res = await fetch(
+          `/api/design/candidates?theme=${encodeURIComponent(activeTheme)}&weekStart=sunday`,
+          { method: "GET" }
+        );
+        const json = (await res.json().catch(() => null)) as CandidateApiResponse | null;
+        if (cancelled) return;
+
+        if (!res.ok || !json || json.ok !== true) {
+          const msg = (json && json.ok === false && typeof json.error === "string")
+            ? json.error
+            : "Unable to load AI candidates";
+          throw new Error(msg);
+        }
+
+        const normalized: DesignCandidate[] = (json.candidates ?? [])
+          .map((c) => {
+            const name = typeof c.name === "string" ? c.name.trim() : "";
+            const themeName = typeof c.theme === "string" ? c.theme.trim() : "";
+            const grid = c.grid;
+            if (!name) return null;
+            if (themeName !== activeTheme) return null;
+            if (!Array.isArray(grid) || grid.length !== 7) return null;
+            return { name, theme: activeTheme, grid } as DesignCandidate;
+          })
+          .filter(Boolean) as DesignCandidate[];
+
+        if (!normalized.length) {
+          throw new Error("AI returned no usable candidates");
+        }
+
+        setCandidatesByTheme((prev) => ({ ...prev, [activeTheme]: normalized.slice(0, 5) }));
+      } catch (e) {
+        if (cancelled) return;
+        setCandidateError(e instanceof Error ? e.message : "Unable to load AI candidates");
+      } finally {
+        if (cancelled) return;
+        setLoadingCandidates(false);
+      }
+    }
+
+    loadCandidates();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTheme, candidatesByTheme, session]);
+
+  const candidates: DesignCandidate[] = useMemo(() => {
+    const ai = candidatesByTheme[activeTheme];
+    if (ai && ai.length) return ai;
+    return fallbackCandidates;
+  }, [activeTheme, candidatesByTheme, fallbackCandidates]);
 
   const candidateData = useMemo(() => candidates.map((c) => c.grid), [candidates]);
 
@@ -402,6 +482,16 @@ export function DesignClient() {
         {suggestionError ? (
           <div style={{ marginTop: -16, marginBottom: 18, color: theme.muted, fontSize: 12, fontFamily: "var(--pp-font-body)" }}>
             {suggestionError}
+          </div>
+        ) : null}
+
+        {loadingCandidates ? (
+          <div style={{ marginTop: -16, marginBottom: 18, color: theme.muted, fontSize: 12, fontFamily: "var(--pp-font-body)" }}>
+            Generating candidates from your GitHub history…
+          </div>
+        ) : candidateError ? (
+          <div style={{ marginTop: -16, marginBottom: 18, color: theme.muted, fontSize: 12, fontFamily: "var(--pp-font-body)" }}>
+            {candidateError}
           </div>
         ) : null}
 

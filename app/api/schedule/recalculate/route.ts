@@ -13,6 +13,13 @@ function utcMidnight(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+function startOfUtcWeekSunday(date: Date): Date {
+  const d = utcMidnight(date);
+  const dow = d.getUTCDay(); // 0=Sun
+  d.setUTCDate(d.getUTCDate() - dow);
+  return utcMidnight(d);
+}
+
 function isGraphGrid(value: unknown): value is GraphGrid {
   if (!Array.isArray(value) || value.length !== 7) return false;
   for (const row of value) {
@@ -68,15 +75,16 @@ export async function POST() {
   const calendar = await fetchContributionCalendar({ accessToken });
   const thresholds = computeContributionThresholds(calendar);
 
-  const startDate = utcMidnight(new Date());
+  const today = utcMidnight(new Date());
+  const designStartedAt = startOfUtcWeekSunday(today);
   const seed = Date.now() ^ user.id.length;
-  const generated = generateSchedule({ grid: design.pixelData, startDate, thresholds, seed });
+  const generated = generateSchedule({ grid: design.pixelData, startDate: today, thresholds, seed });
 
   const result = await prisma.$transaction(async (tx) => {
     await tx.design.update({
       where: { id: design.id },
       data: {
-        startedAt: startDate,
+        startedAt: designStartedAt,
         targetEndAt: generated.targetEndAt ?? undefined,
         completedAt: null,
       },
@@ -86,7 +94,7 @@ export async function POST() {
     await tx.scheduleEntry.deleteMany({
       where: {
         designId: design.id,
-        date: { gte: startDate },
+        date: { gte: today },
       },
     });
 
