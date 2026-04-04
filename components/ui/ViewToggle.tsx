@@ -33,8 +33,8 @@ export function ViewToggle({ options, value, onChange, t }: ViewToggleProps) {
             type="button"
             onClick={() => onChange(opt)}
             style={{
-              padding: "6px 16px",
-              fontSize: 13,
+              padding: "4px 10px",
+              fontSize: 12,
               fontWeight: 600,
               fontFamily: "var(--pp-font-body)",
               cursor: "pointer",

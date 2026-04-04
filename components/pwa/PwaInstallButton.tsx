@@ -41,6 +41,18 @@ export function PwaInstallButton({ mode = "button", label = "Download app" }: Pw
       const outcome = await ctx.promptInstall();
       if (outcome !== "unavailable") return;
 
+      // Common case: the service worker just registered and the page isn't
+      // controlled yet; install prompt often becomes available after one refresh.
+      if (
+        !isIOS() &&
+        "serviceWorker" in navigator &&
+        navigator.serviceWorker &&
+        !navigator.serviceWorker.controller
+      ) {
+        window.alert("Install is being prepared. Please refresh once, then click ‘Download app’ again.");
+        return;
+      }
+
       if (isIOS()) {
         window.alert("To install on iPhone/iPad: tap Share in Safari, then ‘Add to Home Screen’. ");
         return;

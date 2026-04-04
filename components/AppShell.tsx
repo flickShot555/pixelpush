@@ -48,13 +48,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const hideSidebar = shouldHideSidebar(pathname);
 
-  const showBackButton =
-    hideSidebar && pathname !== "/" && !pathname.startsWith("/pricing");
+  const showBackButton = hideSidebar && pathname !== "/";
 
   if (hideSidebar)
     return (
       <>
-        {showBackButton ? <BackButton /> : null}
+        {showBackButton ? (
+          <BackButton fallbackHref={pathname.startsWith("/pricing") ? "/dashboard" : "/"} />
+        ) : null}
         {children}
       </>
     );
@@ -93,8 +94,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               width: 40,
               height: 40,
               borderRadius: theme.borderRadius,
-              background: `linear-gradient(135deg, ${theme.g3}, ${theme.g4})`,
+              background: theme.surface2,
               border: `1px solid ${theme.accentBorder}`,
+              backgroundImage: "url(/icon-192.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
             }}
           />
 

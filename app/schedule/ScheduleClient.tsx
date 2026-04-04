@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 import { Btn } from "@/components/ui/Btn";
 import { Card } from "@/components/ui/Card";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useTheme } from "@/lib/theme";
+import { isPro as isProPlan } from "@/lib/check-plan";
 
 type ViewMode = "calendar" | "list";
 
@@ -101,6 +103,9 @@ export function ScheduleClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme } = useTheme();
+  const { data: session } = useSession();
+  const plan = (session?.user as unknown as { plan?: string } | undefined)?.plan ?? "FREE";
+  const isPro = isProPlan({ plan });
 
   const view: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
 
@@ -288,7 +293,7 @@ export function ScheduleClient() {
           </div>
 
           <div className="flex items-center" style={{ paddingTop: 2, gap: 10 }}>
-            {design ? (
+            {design && isPro ? (
               <Btn
                 variant="secondary"
                 small

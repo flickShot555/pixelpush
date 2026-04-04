@@ -21,6 +21,7 @@ import {
 } from "@/lib/graph-utils";
 import { useTheme } from "@/lib/theme";
 import { PixelDiffGrid } from "@/components/ui/PixelDiffGrid";
+import { isPro as isProPlan } from "@/lib/check-plan";
 
 type ThemeName = "Pets" | "Scenery" | "Abstract" | "Space" | "Aviation" | "Cars";
 
@@ -66,8 +67,8 @@ export function DesignClient() {
   const { data: session } = useSession();
   const { theme } = useTheme();
 
-  const plan = (session?.user as unknown as { plan?: "FREE" | "PRO" } | undefined)?.plan ?? "FREE";
-  const isPro = plan === "PRO";
+  const plan = (session?.user as unknown as { plan?: string } | undefined)?.plan ?? "FREE";
+  const isPro = isProPlan({ plan });
 
   const [activeTheme, setActiveTheme] = useState<ThemeName>("Pets");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -675,7 +676,8 @@ export function DesignClient() {
             );
           })}
 
-          <Card
+          {!isPro ? (
+            <Card
             style={{
               padding: 14,
               opacity: 0.6,
@@ -707,7 +709,8 @@ export function DesignClient() {
                 Coming Soon
               </Btn>
             </div>
-          </Card>
+            </Card>
+          ) : null}
         </section>
 
         <div className="mt-7" style={{ transition: "opacity 0.2s", opacity: selected ? 1 : 0 }}>

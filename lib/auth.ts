@@ -155,7 +155,25 @@ export const authOptions: NextAuthOptions = {
           session.user.githubId = token.githubId;
         }
 
-        session.user.plan = token.plan ?? "FREE";
+        // Always read the latest plan from the database so webhook-driven
+        // upgrades (Paddle) show up immediately without requiring re-login.
+        if (token.sub) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.sub },
+              select: { plan: true, paddleSubscriptionStatus: true },
+            });
+
+            session.user.plan = dbUser?.plan ?? "FREE";
+            session.user.subscriptionStatus = dbUser?.paddleSubscriptionStatus ?? null;
+          } catch {
+            session.user.plan = token.plan ?? "FREE";
+            session.user.subscriptionStatus = null;
+          }
+        } else {
+          session.user.plan = token.plan ?? "FREE";
+          session.user.subscriptionStatus = null;
+        }
       }
       return session;
     },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarDays, Check, Circle, Flame, Target, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -30,6 +31,9 @@ function ScaledGrid({ grid }: { grid: GraphGrid }) {
 export default function DashboardPage() {
   const { theme } = useTheme();
   const { data: session } = useSession();
+  const router = useRouter();
+
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
 
   const [progressPctAnim, setProgressPctAnim] = useState(0);
 
@@ -58,6 +62,19 @@ export default function DashboardPage() {
     if (!activeDesignName) return "No active design";
     return `Active: ${activeDesignName} · ${completionPct}% complete`;
   }, [activeDesignName, completionPct]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgraded") !== "true") return;
+
+    setShowUpgradeBanner(true);
+
+    // Clean the URL so refreshes don't re-trigger the banner.
+    router.replace("/dashboard");
+
+    const t = window.setTimeout(() => setShowUpgradeBanner(false), 5_000);
+    return () => window.clearTimeout(t);
+  }, [router]);
 
   function relativeWhenLabel(dateIso: string, todayIso: string): string {
     const d = new Date(dateIso);
@@ -245,6 +262,24 @@ export default function DashboardPage() {
             <Tag>{tagText}</Tag>
           </div>
         </header>
+
+        {showUpgradeBanner ? (
+          <div
+            className="mt-4"
+            style={{
+              background: theme.accentBg,
+              border: `1px solid ${theme.accentBorder}`,
+              color: theme.accent,
+              borderRadius: theme.borderRadius,
+              padding: "12px 14px",
+              fontSize: 13,
+              fontWeight: 800,
+              fontFamily: "var(--pp-font-head)",
+            }}
+          >
+            🎉 Welcome to PixelPush Pro! Your features are now active.
+          </div>
+        ) : null}
 
         <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <StatCard

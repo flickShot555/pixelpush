@@ -1,2 +1,11 @@
--- AlterTable
-ALTER TABLE "TargetDesign" ALTER COLUMN "startDate" DROP DEFAULT;
+-- NOTE: This migration was originally generated to drop the DEFAULT from
+-- TargetDesign.startDate, but it is ordered before the migrations that
+-- create the TargetDesign table and add the startDate column.
+--
+-- Leaving the original SQL here breaks `prisma migrate` on a clean database
+-- (including Prisma's shadow database) because the table/column do not exist
+-- yet.
+--
+-- A later migration performs the DROP DEFAULT at the correct point.
+
+-- No-op

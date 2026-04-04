@@ -6,6 +6,7 @@ import { fetchContributionCalendar } from "@/lib/github";
 import { prisma } from "@/lib/prisma";
 import { computeContributionThresholds, generateSchedule } from "@/lib/schedule";
 import type { GraphGrid } from "@/lib/graph-utils";
+import { isPro } from "@/lib/check-plan";
 
 export const runtime = "nodejs";
 
@@ -37,30 +38,31 @@ export async function POST() {
   const session = await getServerSession(authOptions);
   const accessToken = (session as unknown as { accessToken?: string })?.accessToken;
 
-  if (!session) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const planUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, plan: true },
+  });
+
+  if (!planUser) {
+    return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+  }
+
+  if (!isPro({ plan: planUser.plan })) {
+    return NextResponse.json({ ok: false, error: "Pro plan required" }, { status: 403 });
+  }
+
   if (!accessToken) {
     return NextResponse.json({ ok: false, error: "Connect GitHub to recalculate your schedule." }, { status: 400 });
   }
 
-  const email = session.user?.email ?? undefined;
-  const username = (session.user as unknown as { username?: string })?.username;
-  const githubId = (session.user as unknown as { githubId?: string })?.githubId;
-
-  const user = await prisma.user.findFirst({
-    where: {
-      OR: [
-        email ? { email: email.toLowerCase() } : undefined,
-        username ? { username } : undefined,
-        githubId ? { githubId } : undefined,
-      ].filter(Boolean) as Array<{ email?: string; username?: string; githubId?: string }>,
-    },
-    select: { id: true },
-  });
-
-  if (!user) return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+  const userId = planUser.id;
 
   const design = await prisma.design.findFirst({
-    where: { userId: user.id, status: "active" },
+    where: { userId, status: "active" },
     select: { id: true, pixelData: true },
   });
 
@@ -77,7 +79,7 @@ export async function POST() {
 
   const today = utcMidnight(new Date());
   const designStartedAt = startOfUtcWeekSunday(today);
-  const seed = Date.now() ^ user.id.length;
+  const seed = Date.now() ^ userId.length;
   const generated = generateSchedule({ grid: design.pixelData, startDate: today, thresholds, seed });
 
   const result = await prisma.$transaction(async (tx) => {

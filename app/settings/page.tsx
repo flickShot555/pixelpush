@@ -45,7 +45,9 @@ export default function SettingsPage() {
   const dangerBorder = useMemo(() => hexToRgba(theme.danger, 0.2), [theme.danger]);
 
   const plan = session?.user?.plan ?? "FREE";
-  const planLabel = plan === "PRO" ? "Pro" : "Free";
+  const planLabel = plan === "PRO" ? "Pro" : plan === "LIFETIME" ? "Lifetime" : "Free";
+
+  const [managing, setManaging] = useState(false);
 
   return (
     <div className="p-8 w-full min-h-full">
@@ -288,18 +290,52 @@ export default function SettingsPage() {
                 Current Plan: <span style={{ color: theme.text, fontWeight: 700 }}>{planLabel}</span>
               </div>
               <div style={{ color: theme.muted, fontSize: 12, marginTop: 2 }}>
-                {plan === "PRO" ? "Thanks for supporting PixelPush." : "Upgrade to unlock AI suggestions and more"}
+                {plan === "PRO"
+                  ? "Thanks for supporting PixelPush."
+                  : plan === "LIFETIME"
+                    ? "Thanks for supporting PixelPush." 
+                    : "Upgrade to unlock AI suggestions and more"}
               </div>
             </div>
 
-            <Btn
-              small
-              onClick={() => {
-                router.push("/pricing");
-              }}
-            >
-              View Pricing
-            </Btn>
+            <div className="flex items-center gap-2">
+              {plan === "PRO" ? (
+                <Btn
+                  variant="secondary"
+                  small
+                  disabled={managing}
+                  onClick={async () => {
+                    if (managing) return;
+                    setManaging(true);
+                    try {
+                      const res = await fetch("/api/portal", { method: "GET" });
+                      const json = (await res.json().catch(() => null)) as
+                        | { portalUrl?: string; error?: string }
+                        | null;
+
+                      if (!res.ok || !json?.portalUrl) {
+                        throw new Error(json?.error || "Unable to open billing portal");
+                      }
+
+                      window.location.href = json.portalUrl;
+                    } finally {
+                      setManaging(false);
+                    }
+                  }}
+                >
+                  {managing ? "Opening…" : "Manage Subscription"}
+                </Btn>
+              ) : null}
+
+              <Btn
+                small
+                onClick={() => {
+                  router.push("/pricing");
+                }}
+              >
+                View Pricing
+              </Btn>
+            </div>
           </div>
         </Card>
 

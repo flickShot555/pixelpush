@@ -28,8 +28,6 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
   const [isInstalled, setIsInstalled] = useState<boolean>(() => detectInstalled());
 
   useEffect(() => {
-    setIsInstalled(detectInstalled());
-
     function onBeforeInstallPrompt(e: Event) {
       (e as BeforeInstallPromptEvent).preventDefault?.();
       setPromptEvent(e as BeforeInstallPromptEvent);
@@ -40,12 +38,24 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
       setPromptEvent(null);
     }
 
+    function onMaybeInstalledChanged() {
+      setIsInstalled(detectInstalled());
+    }
+
+    const mql = window.matchMedia?.("(display-mode: standalone)");
+
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     window.addEventListener("appinstalled", onAppInstalled);
+    window.addEventListener("focus", onMaybeInstalledChanged);
+    document.addEventListener("visibilitychange", onMaybeInstalledChanged);
+    mql?.addEventListener?.("change", onMaybeInstalledChanged);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
       window.removeEventListener("appinstalled", onAppInstalled);
+      window.removeEventListener("focus", onMaybeInstalledChanged);
+      document.removeEventListener("visibilitychange", onMaybeInstalledChanged);
+      mql?.removeEventListener?.("change", onMaybeInstalledChanged);
     };
   }, []);
 
@@ -55,19 +65,14 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
 
     const register = async () => {
       try {
-        await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await reg.update().catch(() => undefined);
       } catch {
         // Ignore; install button will fall back to instructions.
       }
     };
 
-    if (document.readyState === "complete") {
-      void register();
-      return;
-    }
-
-    window.addEventListener("load", register);
-    return () => window.removeEventListener("load", register);
+    void register();
   }, []);
 
   const promptInstall = useCallback(async (): Promise<"accepted" | "dismissed" | "unavailable"> => {

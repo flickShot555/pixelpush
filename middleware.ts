@@ -9,12 +9,16 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/u/")) return true;
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname.startsWith("/api/signup")) return true;
+  if (pathname.startsWith("/api/webhook/paddle")) return true;
   if (pathname.startsWith("/api/streaks/")) return true;
   if (pathname.startsWith("/api/share-card")) return true;
   if (pathname.startsWith("/api/share-card/data")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname === "/favicon.ico") return true;
   if (pathname === "/manifest.webmanifest") return true;
+  if (pathname === "/terms") return true;
+  if (pathname === "/privacy") return true;
+  if (pathname === "/refund") return true;
   return false;
 }
 

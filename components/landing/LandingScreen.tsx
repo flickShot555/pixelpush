@@ -399,6 +399,55 @@ export function LandingScreen() {
               <Btn small href="/signup">
                 Sign up
               </Btn>
+
+              <a
+                href="/terms"
+                style={{
+                  color: theme.muted,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none";
+                }}
+              >
+                Terms
+              </a>
+              <a
+                href="/privacy"
+                style={{
+                  color: theme.muted,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none";
+                }}
+              >
+                Privacy
+              </a>
+              <a
+                href="/refund"
+                style={{
+                  color: theme.muted,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none";
+                }}
+              >
+                Refund
+              </a>
             </div>
           </div>
 

@@ -10,7 +10,8 @@ declare module "next-auth" {
       image?: string | null;
       username?: string;
       githubId?: string;
-      plan?: "FREE" | "PRO";
+      plan?: "FREE" | "PRO" | "LIFETIME";
+      subscriptionStatus?: string | null;
     };
   }
 }
@@ -20,6 +21,6 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     username?: string;
     githubId?: string;
-    plan?: "FREE" | "PRO";
+    plan?: "FREE" | "PRO" | "LIFETIME";
   }
 }

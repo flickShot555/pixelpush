@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (session.user?.plan !== "PRO") {
+  if (session.user?.plan !== "PRO" && session.user?.plan !== "LIFETIME") {
     return NextResponse.json(
       { error: "AI design suggestions are available in Pro." },
       { status: 403 }

@@ -15,7 +15,7 @@ type PlanCardProps = {
   price: string;
   period: string;
   description: string;
-  ctaLabel: string;
+  ctaLabel: React.ReactNode;
   onCtaClick: () => void;
   ctaDisabled?: boolean;
   highlighted?: boolean;
@@ -195,6 +195,47 @@ function PlanCard({
 export function PricingClient() {
   const { theme } = useTheme();
   const router = useRouter();
+  const [upgrading, setUpgrading] = useState<null | "pro" | "lifetime">(null);
+
+  async function handleUpgrade(plan: "pro" | "lifetime") {
+    if (upgrading) return;
+    setUpgrading(plan);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { checkoutUrl?: string; error?: string }
+        | null;
+
+      if (!res.ok || !json?.checkoutUrl) {
+        throw new Error(json?.error || "Unable to start checkout");
+      }
+
+      window.location.href = json.checkoutUrl;
+    } catch {
+      setUpgrading(null);
+    }
+  }
+
+  function Spinner() {
+    return (
+      <span
+        aria-hidden
+        className="animate-spin"
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 999,
+          border: `2px solid color-mix(in srgb, ${theme.onAccent} 35%, transparent)` ,
+          borderTopColor: theme.onAccent,
+          display: "inline-block",
+        }}
+      />
+    );
+  }
 
   const features = useMemo(
     () =>
@@ -277,12 +318,19 @@ export function PricingClient() {
             price="$7"
             period="per month"
             description="For developers who are serious about their graph art"
-            ctaLabel="Coming Soon"
-            ctaDisabled
+            ctaLabel={
+              upgrading === "pro" ? (
+                <>
+                  <Spinner /> Redirecting...
+                </>
+              ) : (
+                "Upgrade to Pro"
+              )
+            }
+            ctaDisabled={upgrading != null}
             highlighted
             onCtaClick={() => {
-              // TODO: wire to Stripe checkout in Milestone monetization
-              router.push("/onboarding");
+              void handleUpgrade("pro");
             }}
           />
 
@@ -292,12 +340,19 @@ export function PricingClient() {
             price="$35"
             period="one-time"
             description="Pay once, keep Pro forever. Limited spots."
-            ctaLabel="Coming Soon"
-            ctaDisabled
+            ctaLabel={
+              upgrading === "lifetime" ? (
+                <>
+                  <Spinner /> Redirecting...
+                </>
+              ) : (
+                "Get Lifetime Deal"
+              )
+            }
+            ctaDisabled={upgrading != null}
             special
             onCtaClick={() => {
-              // TODO: wire to Stripe checkout in Milestone monetization
-              router.push("/onboarding");
+              void handleUpgrade("lifetime");
             }}
           />
         </section>

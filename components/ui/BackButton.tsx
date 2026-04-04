@@ -9,9 +9,10 @@ import { useTheme } from "@/lib/theme";
 export type BackButtonProps = {
   className?: string;
   style?: React.CSSProperties;
+  fallbackHref?: string;
 };
 
-export function BackButton({ className, style }: BackButtonProps) {
+export function BackButton({ className, style, fallbackHref = "/" }: BackButtonProps) {
   const router = useRouter();
   const { theme } = useTheme();
 
@@ -26,7 +27,7 @@ export function BackButton({ className, style }: BackButtonProps) {
           return;
         }
 
-        router.push("/");
+        router.push(fallbackHref);
       }}
       style={{
         position: "fixed",
