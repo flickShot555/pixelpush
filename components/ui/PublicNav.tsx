@@ -58,6 +58,19 @@ export function PublicNav({ rightSlot, fixed = false }: PublicNavProps) {
         >
           PixelPush
         </span>
+        <span style={{
+          fontSize: '10px',
+          fontWeight: 700,
+          fontFamily: "var(--pp-font-body)",
+          color: theme.accent,
+          background: theme.accentBg,
+          border: `1px solid ${theme.accentBorder}`,
+          borderRadius: '999px',
+          padding: '1px 7px',
+          letterSpacing: '0.05em',
+          marginLeft: '6px',
+          verticalAlign: 'middle',
+        }}>BETA</span>
       </Link>
 
       <div className="flex items-center gap-2">

@@ -9,13 +9,6 @@ import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { useTheme } from "@/lib/theme";
 
-// TODO: replace with real session data from NextAuth
-const MOCK_USERNAME = "flickShot555";
-// TODO: replace with real session data from NextAuth
-const MOCK_EMAIL = "flickshot555@github.com";
-// TODO: replace with real sync metadata from database
-const MOCK_LAST_SYNCED = "Today at 8:42 AM";
-
 function hexToRgba(hex: string, alpha: number): string {
   const raw = hex.trim().replace(/^#/, "");
   const normalized =
@@ -37,7 +30,7 @@ function hexToRgba(hex: string, alpha: number): string {
 export default function SettingsPage() {
   const { mode, setMode, theme } = useTheme();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -46,6 +39,24 @@ export default function SettingsPage() {
 
   const plan = session?.user?.plan ?? "FREE";
   const planLabel = plan === "PRO" ? "Pro" : plan === "LIFETIME" ? "Lifetime" : "Free";
+
+  const trialEnabled = (process.env.NEXT_PUBLIC_LAUNCH_TRIAL ?? "").trim().toLowerCase() === "true";
+  const trialEndsAt = session?.user?.trialEndsAt ?? null;
+  const trialEndDate = useMemo(() => {
+    if (!trialEndsAt) return null;
+    const d = new Date(trialEndsAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
+  }, [trialEndsAt]);
+
+  const trialActive = useMemo(() => {
+    if (!trialEndsAt) return false;
+    const d = new Date(trialEndsAt);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.getTime() > Date.now();
+  }, [trialEndsAt]);
+
+  const eligibleForTrial = trialEnabled && plan === "FREE" && !trialEndsAt;
 
   const [managing, setManaging] = useState(false);
 
@@ -100,10 +111,10 @@ export default function SettingsPage() {
 
             <div style={{ minWidth: 0 }}>
               <div style={{ color: theme.text, fontSize: 15, fontWeight: 700 }}>
-                {MOCK_USERNAME}
+                {session?.user?.name ?? session?.user?.email ?? "Not signed in"}
               </div>
               <div style={{ color: theme.muted, fontSize: 13, marginTop: 2 }}>
-                {MOCK_EMAIL}
+                {session?.user?.email ?? ""}
               </div>
             </div>
 
@@ -250,25 +261,16 @@ export default function SettingsPage() {
             GitHub Sync
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div style={{ color: theme.muted, fontSize: 14 }}>Last synced</div>
-              <div style={{ color: theme.text, fontSize: 13, fontWeight: 600, marginTop: 2 }}>
-                {MOCK_LAST_SYNCED}
-              </div>
-            </div>
-
-            <Btn
-              variant="secondary"
-              small
-              onClick={() => {
-                // TODO: trigger manual GitHub graph sync
-                console.log("Sync Now clicked");
-              }}
-            >
-              Sync Now 🔄
-            </Btn>
-          </div>
+          <Btn
+            variant="secondary"
+            small
+            onClick={() => {
+              // TODO: trigger manual GitHub graph sync
+              console.log("Sync Now clicked");
+            }}
+          >
+            Sync Now 🔄
+          </Btn>
         </Card>
 
         <Card className="w-full mb-4">
@@ -296,6 +298,16 @@ export default function SettingsPage() {
                     ? "Thanks for supporting PixelPush." 
                     : "Upgrade to unlock AI suggestions and more"}
               </div>
+
+              {trialEnabled && plan === "FREE" ? (
+                <div style={{ color: theme.muted, fontSize: 12, marginTop: 8 }}>
+                  {trialActive && trialEndDate
+                    ? `Trial active until ${trialEndDate}`
+                    : trialEndDate
+                      ? `Trial ended on ${trialEndDate}`
+                      : "7-day free trial available"}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
@@ -324,6 +336,29 @@ export default function SettingsPage() {
                   }}
                 >
                   {managing ? "Opening…" : "Manage Subscription"}
+                </Btn>
+              ) : null}
+
+              {eligibleForTrial ? (
+                <Btn
+                  variant="secondary"
+                  small
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/trial/activate", { method: "POST" });
+                      const json = (await res.json().catch(() => null)) as
+                        | { ok?: boolean; error?: string }
+                        | null;
+                      if (!res.ok || !json?.ok) {
+                        throw new Error(json?.error || "Unable to activate trial");
+                      }
+                      await update();
+                    } catch (e) {
+                      window.alert(e instanceof Error ? e.message : "Unable to activate trial");
+                    }
+                  }}
+                >
+                  Start Trial
                 </Btn>
               ) : null}
 

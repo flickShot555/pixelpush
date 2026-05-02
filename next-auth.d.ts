@@ -12,6 +12,7 @@ declare module "next-auth" {
       githubId?: string;
       plan?: "FREE" | "PRO" | "LIFETIME";
       subscriptionStatus?: string | null;
+      trialEndsAt?: string | null;
     };
   }
 }

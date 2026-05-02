@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
 import { authOptions } from "@/lib/auth";
+import { isPro } from "@/lib/check-plan";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (session.user?.plan !== "PRO" && session.user?.plan !== "LIFETIME") {
+  if (!isPro({ plan: session.user?.plan ?? "FREE", trialEndsAt: session.user?.trialEndsAt ?? null })) {
     return NextResponse.json(
       { error: "AI design suggestions are available in Pro." },
       { status: 403 }

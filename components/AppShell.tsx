@@ -15,6 +15,7 @@ import {
 import { useTheme } from "@/lib/theme";
 import { BackButton } from "@/components/ui/BackButton";
 import { PwaInstallButton } from "@/components/pwa/PwaInstallButton";
+import { TrialBanner } from "@/components/ui/TrialBanner";
 
 const NAV_ITEMS: Array<{ href: string; label: string; icon: React.ReactNode }> = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
@@ -195,6 +196,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             WebkitOverflowScrolling: "touch",
           }}
         >
+          <div style={{ paddingLeft: 24, paddingRight: 24, maxWidth: 1200, margin: "0 auto" }}>
+            <TrialBanner />
+          </div>
           {children}
         </div>
       </div>
@@ -240,11 +244,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   fontFamily: "var(--pp-font-head)",
                   fontWeight: 800,
                   letterSpacing: "-0.02em",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                 }}
               >
                 PixelPush
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  fontFamily: "var(--pp-font-body)",
+                  color: theme.accent,
+                  background: theme.accentBg,
+                  border: `1px solid ${theme.accentBorder}`,
+                  borderRadius: '999px',
+                  padding: '1px 7px',
+                  letterSpacing: '0.05em',
+                  verticalAlign: 'middle',
+                }}>BETA</span>
               </div>
               <PwaInstallButton label="Download" />
+            </div>
+
+            <div style={{ paddingLeft: 16, paddingRight: 16 }}>
+              <TrialBanner />
             </div>
 
             {children}

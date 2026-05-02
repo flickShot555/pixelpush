@@ -17,6 +17,10 @@ function badRequest(message: string) {
   return NextResponse.json({ ok: false, error: message }, { status: 400 });
 }
 
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
 export async function POST(req: Request) {
   let body: SignupBody;
   try {
@@ -43,6 +47,8 @@ export async function POST(req: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  const launchTrial = (process.env.NEXT_PUBLIC_LAUNCH_TRIAL ?? "").trim().toLowerCase() === "true";
+
   try {
     const user = await prisma.user.create({
       data: {
@@ -50,6 +56,7 @@ export async function POST(req: Request) {
         email,
         username,
         passwordHash,
+        ...(launchTrial ? { trialEndsAt: addDays(new Date(), 7) } : {}),
       },
       select: { id: true },
     });

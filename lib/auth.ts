@@ -161,18 +161,21 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: token.sub },
-              select: { plan: true, paddleSubscriptionStatus: true },
+              select: { plan: true, paddleSubscriptionStatus: true, trialEndsAt: true },
             });
 
             session.user.plan = dbUser?.plan ?? "FREE";
             session.user.subscriptionStatus = dbUser?.paddleSubscriptionStatus ?? null;
+            session.user.trialEndsAt = dbUser?.trialEndsAt ? dbUser.trialEndsAt.toISOString() : null;
           } catch {
             session.user.plan = token.plan ?? "FREE";
             session.user.subscriptionStatus = null;
+            session.user.trialEndsAt = null;
           }
         } else {
           session.user.plan = token.plan ?? "FREE";
           session.user.subscriptionStatus = null;
+          session.user.trialEndsAt = null;
         }
       }
       return session;

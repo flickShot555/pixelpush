@@ -105,7 +105,8 @@ export function ScheduleClient() {
   const { theme } = useTheme();
   const { data: session } = useSession();
   const plan = (session?.user as unknown as { plan?: string } | undefined)?.plan ?? "FREE";
-  const isPro = isProPlan({ plan });
+  const trialEndsAt = (session?.user as unknown as { trialEndsAt?: string | null } | undefined)?.trialEndsAt ?? null;
+  const isPro = isProPlan({ plan, trialEndsAt });
 
   const view: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
 

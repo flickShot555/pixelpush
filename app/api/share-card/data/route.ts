@@ -1,8 +1,10 @@
+// PUBLIC ENDPOINT — never use stored OAuth tokens here.
+// Only serve data from the PixelPush database.
+
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { calendarToFixedWindowGrid, emptyGrid, type GraphGrid } from "@/lib/graph-utils";
-import { fetchContributionCalendar } from "@/lib/github";
+import { emptyGrid, type GraphGrid } from "@/lib/graph-utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,10 +22,6 @@ function parsePercent(value: string | null): number | null {
   const i = Math.round(n);
   if (i < 0 || i > 100) return null;
   return i;
-}
-
-function toUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function isGraphGrid(value: unknown): value is GraphGrid {
@@ -70,27 +68,9 @@ export async function GET(req: Request) {
 
   const targetGrid: GraphGrid = design && isGraphGrid(design.pixelData) ? design.pixelData : emptyGrid();
 
-  let currentGrid: GraphGrid = emptyGrid();
-  let connected = false;
   let computedPct: number | null = null;
 
   if (design) {
-    const account = await prisma.account.findFirst({
-      where: { userId: user.id, provider: "github", access_token: { not: null } },
-      select: { access_token: true },
-    });
-
-    if (account?.access_token) {
-      try {
-        const calendar = await fetchContributionCalendar({ accessToken: account.access_token });
-        const todayISO = toUtcDay(new Date()).toISOString();
-        currentGrid = calendarToFixedWindowGrid(calendar, { startDateISO: design.startedAt.toISOString(), todayISO });
-        connected = true;
-      } catch {
-        connected = false;
-      }
-    }
-
     const [totalDays, completedDays] = await Promise.all([
       prisma.scheduleEntry.count({ where: { designId: design.id, status: { not: "skipped" } } }),
       prisma.scheduleEntry.count({ where: { designId: design.id, status: "completed" } }),
@@ -101,11 +81,11 @@ export async function GET(req: Request) {
   const displayPct = percent ?? computedPct ?? 0;
 
   const titleLine = stage === "started" ? "Design Started" : stage === "completed" ? "Design Completed" : "Progress Milestone";
-  const subtitleLine = stage === "progress" ? `${displayPct}% complete` : connected ? "Synced with GitHub" : "Not synced";
+  const subtitleLine = stage === "progress" ? `${displayPct}% complete` : "Not synced";
 
   const leftGrid = stage === "completed" ? emptyGrid() : targetGrid;
   const leftLabel = stage === "completed" ? "Before" : "Target";
-  const rightGrid = stage === "completed" ? targetGrid : currentGrid;
+  const rightGrid = stage === "completed" ? targetGrid : emptyGrid();
   const rightLabel = stage === "completed" ? "After" : "Current";
 
   return NextResponse.json({

@@ -68,7 +68,8 @@ export function DesignClient() {
   const { theme } = useTheme();
 
   const plan = (session?.user as unknown as { plan?: string } | undefined)?.plan ?? "FREE";
-  const isPro = isProPlan({ plan });
+  const trialEndsAt = (session?.user as unknown as { trialEndsAt?: string | null } | undefined)?.trialEndsAt ?? null;
+  const isPro = isProPlan({ plan, trialEndsAt });
 
   const [activeTheme, setActiveTheme] = useState<ThemeName>("Pets");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);

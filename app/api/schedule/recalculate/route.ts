@@ -44,14 +44,14 @@ export async function POST() {
 
   const planUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, plan: true },
+    select: { id: true, plan: true, trialEndsAt: true },
   });
 
   if (!planUser) {
     return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
   }
 
-  if (!isPro({ plan: planUser.plan })) {
+  if (!isPro({ plan: planUser.plan, trialEndsAt: planUser.trialEndsAt })) {
     return NextResponse.json({ ok: false, error: "Pro plan required" }, { status: 403 });
   }
 
