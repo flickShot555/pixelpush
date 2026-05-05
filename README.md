@@ -35,11 +35,11 @@ Your GitHub contribution graph is a 52×7 grid of green squares. Five shade leve
 
 | Landing | Dashboard | Design Selection |
 |---|---|---|
-| ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Design](docs/screenshots/design.png) |
+| ![Landing](Docs/screenshots/landing.png) | ![Dashboard](Docs/screenshots/dashboard.png) | ![Design](Docs/screenshots/design.png) |
 
 | Schedule | Progress | Public Profile |
 |---|---|---|
-| ![Schedule](docs/screenshots/schedule.png) | ![Progress](docs/screenshots/progress.png) | ![Profile](docs/screenshots/profile.png) |
+| ![Schedule](Docs/screenshots/schedule.png) | ![Progress](Docs/screenshots/progress.png) | ![Profile](Docs/screenshots/profile.png) |
 
 ---
 
